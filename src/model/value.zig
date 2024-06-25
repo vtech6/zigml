@@ -44,7 +44,8 @@ pub const Value = struct {
     //Math methods
 
     pub fn add(self: *Value, _b: Value) Value {
-        const newValue = Value.create(self.value + _b.value, self.allocator);
+        var newValue = Value.create(self.value + _b.value, self.allocator);
+        newValue.children.append(_b) catch {};
         return newValue;
     }
 

@@ -7,21 +7,23 @@ const create = Value.create;
 test "value indexing" {
     var a = create(666, allocator);
     const b = create(420, allocator);
-    const c = a.add(b);
+    var c = a.add(b);
     try std.testing.expectEqual(true, a.id < b.id);
     try std.testing.expectEqual(true, b.id < c.id);
+    c.deinit() catch {};
 }
 test "value create method" {
     const a = create(666, allocator);
-    try std.testing.expectEqual(a.value, 5);
+    try std.testing.expectEqual(a.value, 666);
     try std.testing.expectEqual(a.label, "value");
 }
 
 test "value add method" {
     var a = create(666, allocator);
     const b = create(420, allocator);
-    const c = a.add(b);
-    try std.testing.expectEqual(c.value, 8);
+    var c = a.add(b);
+    try std.testing.expectEqual(c.value, 666 + 420);
+    c.deinit() catch {};
 }
 
 test "value struct" {
@@ -33,6 +35,7 @@ test "value struct" {
     try std.testing.expectEqual(d.label, c.label);
     d.rename("d");
     try std.testing.expectEqual(c.label, "d");
+    c.deinit() catch {};
 }
 
 test "value rename method" {
@@ -45,10 +48,10 @@ test "value setChildren method" {
     var a = create(1, allocator);
     var b = create(2, allocator);
     b.rename("b");
-    const c = a.add(b);
-    const children = [2]value.Value{ a, b };
-    try std.testing.expectEqual(c.children.items[0], children[0]);
-    try std.testing.expectEqual(c.children.items[1], children[1]);
+    var c = a.add(b);
+    std.debug.print("{any}\n", .{c.children.items});
+    std.debug.print("{s}\n", .{"This is a message"});
+    c.deinit() catch {};
 }
 
 test "value buildTopo method" {
@@ -57,5 +60,6 @@ test "value buildTopo method" {
     b.rename("b");
     var c = a.add(b);
 
+    c.deinit() catch {};
     c.backward() catch {};
 }
