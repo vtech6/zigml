@@ -15,6 +15,11 @@ pub const Value = struct {
     children: std.ArrayList(Value),
     label: []const u8 = "value",
     op: []const u8 = "value",
+    allocator: Allocator,
+
+    pub fn deinit(self: *Value) !void {
+        self.children.deinit();
+    }
 
     //Neural network methods
 
@@ -22,8 +27,8 @@ pub const Value = struct {
         self.gradient = 1.0;
     }
 
-    pub fn create(value: f32) Value {
-        const newNode = Value{ .id = idTracker, .value = value, .previous = .{ 0, 0 } };
+    pub fn create(value: f32, allocator: Allocator) Value {
+        const newNode = Value{ .id = idTracker, .value = value, .children = std.ArrayList(Value).init(allocator), .allocator = allocator };
         idTracker += 1;
         return newNode;
     }
@@ -38,10 +43,8 @@ pub const Value = struct {
 
     //Math methods
 
-    pub fn add(self: *Value, _b: *Value) Value {
-        var newValue = Value.create(self.value + _b.value);
-        const children = [2]u8{ self.id, _b.id };
-        newValue.setChildren(children);
+    pub fn add(self: *Value, _b: Value) Value {
+        const newValue = Value.create(self.value + _b.value, self.allocator);
         return newValue;
     }
 
@@ -57,7 +60,7 @@ pub const Value = struct {
     }
 
     pub fn printChildren(self: *Value) void {
-        std.debug.print("Children len: {d}", .{self.previous.len});
+        std.debug.print("Children len: {d}", .{self.children.len});
     }
 
     pub fn printValue(self: Value) void {
