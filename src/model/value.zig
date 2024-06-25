@@ -43,9 +43,10 @@ pub const Value = struct {
 
     //Math methods
 
-    pub fn add(self: *Value, _b: Value) Value {
+    pub fn add(self: Value, _b: Value) Value {
         var newValue = Value.create(self.value + _b.value, self.allocator);
         newValue.children.append(_b) catch {};
+        newValue.children.append(self) catch {};
         return newValue;
     }
 
