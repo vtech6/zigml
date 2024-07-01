@@ -13,13 +13,16 @@ pub const Neuron = struct {
 
     pub fn create(allocator: std.mem.Allocator, inputShape: usize) Neuron {
         var weights = std.ArrayList(Value).init(allocator);
+        const output = std.ArrayList(Value).init(allocator);
+
         for (0..inputShape) |_| {
-            const newValue = Value.create(10);
+            const newValue = Value.create(10, allocator);
             weights.append(newValue) catch {};
         }
         const newNeuron = Neuron{
             .weights = weights,
-            .bias = 0,
+            .bias = Value.create(0, allocator),
+            .output = output,
         };
         return newNeuron;
     }
