@@ -1,6 +1,8 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
+pub const OPS = enum { add, init };
+
 pub var idTracker: u8 = 0;
 
 pub fn resetState() void {
@@ -14,18 +16,36 @@ pub const Value = struct {
     gradient: f32 = 1.0,
     children: std.ArrayList(Value),
     label: []const u8 = "value",
-    op: []const u8 = "value",
+    op: OPS = OPS.init,
     allocator: Allocator,
 
     pub fn deinit(self: *Value) !void {
         self.children.deinit();
     }
 
-    //Neural network methods
-
     pub fn backward(self: *Value) !void {
-        self.gradient = 1.0;
+        switch (self.op) {
+            .add => backwardAdd(self),
+            .init => return,
+        }
     }
+
+    pub fn setGradient(self: *Value, gradient: f32) void {
+        self.gradient = gradient;
+    }
+
+    fn backwardAdd(self: *Value) void {
+        var newChildren = std.ArrayList(Value).init(self.allocator);
+        for (self.children.items) |node| {
+            var newValue = node;
+            newValue.setGradient(self.gradient);
+            newChildren.append(newValue) catch {};
+        }
+        self.children.deinit();
+        self.children = newChildren;
+    }
+
+    //Neural network methods
 
     pub fn create(value: f32, allocator: Allocator) Value {
         const newNode = Value{ .id = idTracker, .value = value, .children = std.ArrayList(Value).init(allocator), .allocator = allocator };
@@ -49,6 +69,7 @@ pub const Value = struct {
 
     pub fn add(self: Value, _b: Value) Value {
         var newValue = Value.create(self.value + _b.value, self.allocator);
+        newValue.op = OPS.add;
         const children = [2]Value{ self, _b };
         newValue.setChildren(&children);
         return newValue;

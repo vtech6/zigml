@@ -17,6 +17,7 @@ test "value create method" {
     const a = create(666, allocator);
     try expectEqual(a.value, 666);
     try expectEqual(a.label, "value");
+    try expectEqual(a.op, value.OPS.init);
 }
 
 test "value add method" {
@@ -26,6 +27,7 @@ test "value add method" {
     try expectEqual(c.value, 666 + 420);
     try expectEqual(c.children.items[0], a);
     try expectEqual(c.children.items[1], b);
+    try expectEqual(c.op, value.OPS.add);
     c.deinit() catch {};
 }
 
@@ -57,12 +59,17 @@ test "value setChildren method" {
     c.deinit() catch {};
 }
 
-test "value buildTopo method" {
+test "value backward method" {
     var a = create(1, allocator);
     var b = create(2, allocator);
     b.rename("b");
     var c = a.add(b);
-
-    c.deinit() catch {};
+    c.setGradient(69);
     c.backward() catch {};
+
+    try expectEqual(c.children.items[0].value, a.value);
+    try expectEqual(c.children.items[1].value, b.value);
+    try expectEqual(c.children.items[0].gradient, c.gradient);
+    try expectEqual(c.children.items[1].gradient, c.gradient);
+    c.deinit() catch {};
 }
