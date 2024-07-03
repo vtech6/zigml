@@ -1,6 +1,7 @@
 const value = @import("value.zig");
 const Value = value.Value;
 const std = @import("std");
+const expectEqual = std.testing.expectEqual;
 const allocator = std.testing.allocator;
 const create = Value.create;
 
@@ -8,21 +9,23 @@ test "value indexing" {
     var a = create(666, allocator);
     const b = create(420, allocator);
     var c = a.add(b);
-    try std.testing.expectEqual(true, a.id < b.id);
-    try std.testing.expectEqual(true, b.id < c.id);
+    try expectEqual(true, a.id < b.id);
+    try expectEqual(true, b.id < c.id);
     c.deinit() catch {};
 }
 test "value create method" {
     const a = create(666, allocator);
-    try std.testing.expectEqual(a.value, 666);
-    try std.testing.expectEqual(a.label, "value");
+    try expectEqual(a.value, 666);
+    try expectEqual(a.label, "value");
 }
 
 test "value add method" {
     var a = create(666, allocator);
     const b = create(420, allocator);
     var c = a.add(b);
-    try std.testing.expectEqual(c.value, 666 + 420);
+    try expectEqual(c.value, 666 + 420);
+    try expectEqual(c.children.items[0], a);
+    try expectEqual(c.children.items[1], b);
     c.deinit() catch {};
 }
 
@@ -32,16 +35,16 @@ test "value struct" {
     var c = a.add(b);
     c.rename("c");
     var d = &c;
-    try std.testing.expectEqual(d.label, c.label);
+    try expectEqual(d.label, c.label);
     d.rename("d");
-    try std.testing.expectEqual(c.label, "d");
+    try expectEqual(c.label, "d");
     c.deinit() catch {};
 }
 
 test "value rename method" {
     var a = create(0, allocator);
     a.rename("a");
-    try std.testing.expectEqual(a.label, "a");
+    try expectEqual(a.label, "a");
 }
 
 test "value setChildren method" {

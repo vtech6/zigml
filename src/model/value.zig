@@ -37,16 +37,20 @@ pub const Value = struct {
         self.label = label;
     }
 
-    pub fn setChildren(self: *Value, children: []Value) void {
-        self.children = children;
+    pub fn setChildren(self: *Value, children: []const Value) void {
+        var newChildren = std.ArrayList(Value).init(self.allocator);
+        for (children) |node| {
+            newChildren.append(node) catch {};
+        }
+        self.children = newChildren;
     }
 
     //Math methods
 
     pub fn add(self: Value, _b: Value) Value {
         var newValue = Value.create(self.value + _b.value, self.allocator);
-        newValue.children.append(_b) catch {};
-        newValue.children.append(self) catch {};
+        const children = [2]Value{ self, _b };
+        newValue.setChildren(&children);
         return newValue;
     }
 
