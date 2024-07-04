@@ -113,6 +113,7 @@ pub const Value = struct {
         const children = self.children.items;
         const newVal = Value{ .id = self.id, .value = self.value, .gradient = self.gradient, .children = self.children, .label = self.label, .op = self.op, .allocator = self.allocator };
         valueMap.put(self.id, newVal) catch {};
+        std.debug.print("Updating Values: {d}, {d}, {d}, {d}\n", .{ children[0].value, children[0].gradient, children[1].value, children[1].gradient });
         valueMap.put(children[0].id, children[0]) catch {};
         valueMap.put(children[1].id, children[1]) catch {};
     }

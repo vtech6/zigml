@@ -85,16 +85,14 @@ test "value backpropagate" {
     var _e = value.valueMap.get(e.id).?;
     const _d = value.valueMap.get(d.id).?;
     const _c = value.valueMap.get(c.id).?;
-    //TODO: gradient of _c should equal 50. It does for _c that's a child of _g, but doesn't
-    //for _c that's directly embedded in the valueMap.
     const _b = value.valueMap.get(b.id).?;
     const _a = value.valueMap.get(a.id).?;
     std.debug.print("F value: {d}, op: {any}, grad: {d}\n", .{ _f.value, _f.op, _f.gradient });
     std.debug.print("G value: {d}, op: {any}, grad: {d}\n", .{ _g.value, _g.op, _g.gradient });
     std.debug.print("E value: {d}, op: {any}, grad: {d}\n", .{ _e.value, _e.op, _e.gradient });
     std.debug.print("D value: {d}, op: {any}, grad: {d}\n", .{ _d.value, _d.op, _d.gradient });
-    std.debug.print("C value: {d}, op: {any}, grad: {d}\n", .{ _c.value, _c.op, _f.gradient });
-    std.debug.print("B value: {d}, op: {any}, grad: {d}\n", .{ _b.value, _b.op, _f.gradient });
+    std.debug.print("C value: {d}, op: {any}, grad: {d}\n", .{ _c.value, _c.op, _c.gradient });
+    std.debug.print("B value: {d}, op: {any}, grad: {d}\n", .{ _b.value, _b.op, _b.gradient });
     std.debug.print("A value: {d}, op: {any}, grad: {d}\n", .{ _a.value, _a.op, _a.gradient });
     std.debug.print("G children: {d}, \n", .{_g.children.items[0].gradient});
     a.deinit() catch {};
