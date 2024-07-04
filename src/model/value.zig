@@ -1,20 +1,25 @@
 const std = @import("std");
+const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
+pub var valueMap = std.AutoArrayHashMap(usize, Value).init(std.heap.page_allocator);
+pub var backpropagationOrder = std.ArrayList(usize).init(std.heap.page_allocator);
+pub const OPS = enum { add, init, multiply };
 
-pub const OPS = enum { add, init };
-
-pub var idTracker: u8 = 0;
+pub var idTracker: usize = 0;
 
 pub fn resetState() void {
     idTracker = 0;
+    valueMap.clearAndFree();
+    backpropagationOrder.clearAndFree();
 }
+
 pub const SomeError = error{};
 
 pub const Value = struct {
-    id: u8 = 0,
+    id: usize = 0,
     value: f32,
     gradient: f32 = 1.0,
-    children: std.ArrayList(Value),
+    children: ArrayList(Value),
     label: []const u8 = "value",
     op: OPS = OPS.init,
     allocator: Allocator,
@@ -23,9 +28,28 @@ pub const Value = struct {
         self.children.deinit();
     }
 
+    pub fn prepareBackpropagation(self: Value) void {
+        for (self.children.items) |node| {
+            const nodes = [1]usize{node.id};
+            if (std.mem.containsAtLeast(usize, backpropagationOrder.items, 1, &nodes) == false) {
+                backpropagationOrder.append(node.id) catch {};
+                prepareBackpropagation(node);
+            }
+        }
+    }
+
+    pub fn backpropagate() void {
+        for (backpropagationOrder.items) |node| {
+            var _value = valueMap.getPtr(node);
+            _value.?.backward() catch {};
+        }
+    }
+
     pub fn backward(self: *Value) !void {
+        std.debug.print("Calling Backward {d}\n", .{self.value});
         switch (self.op) {
             .add => backwardAdd(self),
+            .multiply => backwardMultiply(self),
             .init => return,
         }
     }
@@ -34,35 +58,17 @@ pub const Value = struct {
         self.gradient = gradient;
     }
 
-    fn backwardAdd(self: *Value) void {
-        var newChildren = std.ArrayList(Value).init(self.allocator);
-        for (self.children.items) |node| {
-            var newValue = node;
-            newValue.setGradient(self.gradient);
-            newChildren.append(newValue) catch {};
-        }
-        self.children.deinit();
-        self.children = newChildren;
-    }
-
     //Neural network methods
 
     pub fn create(value: f32, allocator: Allocator) Value {
         const newNode = Value{ .id = idTracker, .value = value, .children = std.ArrayList(Value).init(allocator), .allocator = allocator };
         idTracker += 1;
+        valueMap.put(newNode.id, newNode) catch {};
         return newNode;
     }
 
     pub fn rename(self: *Value, label: []const u8) void {
         self.label = label;
-    }
-
-    pub fn setChildren(self: *Value, children: []const Value) void {
-        var newChildren = std.ArrayList(Value).init(self.allocator);
-        for (children) |node| {
-            newChildren.append(node) catch {};
-        }
-        self.children = newChildren;
     }
 
     //Math methods
@@ -71,13 +77,60 @@ pub const Value = struct {
         var newValue = Value.create(self.value + _b.value, self.allocator);
         newValue.op = OPS.add;
         const children = [2]Value{ self, _b };
-        newValue.setChildren(&children);
+        var newChildren = std.ArrayList(Value).init(self.allocator);
+        for (children) |node| {
+            newChildren.append(node) catch {};
+        }
+        newValue.children = newChildren;
+
         return newValue;
     }
 
-    pub fn multiply(self: *Value, multiplier: *Value) Value {
-        var newValue = Value.create(self.value * multiplier.value);
-        newValue.setChildren();
+    fn backwardAdd(self: *Value) void {
+        var newChildren = std.ArrayList(Value).init(self.allocator);
+        var newA = valueMap.get(self.children.items[0].id);
+        var newB = valueMap.get(self.children.items[1].id);
+        newA.?.setGradient(self.gradient);
+        newB.?.setGradient(self.gradient);
+        newChildren.append(newA.?) catch {};
+        newChildren.append(newB.?) catch {};
+        self.children.deinit();
+        self.children = newChildren;
+        self.updateValueMap();
+    }
+
+    fn updateValueMap(self: *Value) void {
+        const children = self.children.items;
+        const newVal = Value{ .id = self.id, .value = self.value, .gradient = self.gradient, .children = self.children, .label = self.label, .op = self.op, .allocator = self.allocator };
+        valueMap.put(self.id, newVal) catch {};
+        valueMap.put(children[0].id, children[0]) catch {};
+        valueMap.put(children[1].id, children[1]) catch {};
+    }
+
+    pub fn multiply(self: Value, multiplier: Value) Value {
+        var newValue = Value.create(self.value * multiplier.value, self.allocator);
+        newValue.op = OPS.multiply;
+        const children = [2]Value{ self, multiplier };
+        var newChildren = std.ArrayList(Value).init(self.allocator);
+        for (children) |node| {
+            newChildren.append(node) catch {};
+        }
+        newValue.children = newChildren;
+
+        return newValue;
+    }
+
+    pub fn backwardMultiply(self: *Value) void {
+        var newChildren = std.ArrayList(Value).init(self.allocator);
+        var newA = valueMap.get(self.children.items[0].id);
+        var newB = valueMap.get(self.children.items[1].id);
+        newA.?.setGradient(self.gradient * newB.?.value);
+        newB.?.setGradient(self.gradient * newA.?.value);
+        newChildren.append(newA.?) catch {};
+        newChildren.append(newB.?) catch {};
+        self.children.deinit();
+        self.children = newChildren;
+        self.updateValueMap();
     }
 
     //Utility methods
