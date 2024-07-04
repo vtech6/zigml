@@ -29,6 +29,10 @@ pub const Value = struct {
     }
 
     pub fn prepareBackpropagation(self: Value) void {
+        const _self = [1]usize{self.id};
+        if (std.mem.containsAtLeast(usize, backpropagationOrder.items, 1, &_self) == false) {
+            backpropagationOrder.append(self.id) catch {};
+        }
         for (self.children.items) |node| {
             const nodes = [1]usize{node.id};
             if (std.mem.containsAtLeast(usize, backpropagationOrder.items, 1, &nodes) == false) {
@@ -40,13 +44,13 @@ pub const Value = struct {
 
     pub fn backpropagate() void {
         for (backpropagationOrder.items) |node| {
-            var _value = valueMap.getPtr(node);
-            _value.?.backward() catch {};
+            var _value = valueMap.getPtr(node).?;
+            _value.backward() catch {};
         }
     }
 
     pub fn backward(self: *Value) !void {
-        std.debug.print("Calling Backward {d}\n", .{self.value});
+        std.debug.print("Calling Backward {d}, op: {any}\n", .{ self.value, self.op });
         switch (self.op) {
             .add => backwardAdd(self),
             .multiply => backwardMultiply(self),
@@ -56,6 +60,7 @@ pub const Value = struct {
 
     pub fn setGradient(self: *Value, gradient: f32) void {
         self.gradient = gradient;
+        self.updateSingleValue() catch {};
     }
 
     //Neural network methods
@@ -82,18 +87,23 @@ pub const Value = struct {
             newChildren.append(node) catch {};
         }
         newValue.children = newChildren;
-
+        newValue.updateSingleValue() catch {};
         return newValue;
     }
 
+    pub fn updateSingleValue(self: Value) !void {
+        valueMap.put(self.id, self) catch {};
+    }
+
     fn backwardAdd(self: *Value) void {
+        std.debug.print("BACKWARD ADD\n", .{});
         var newChildren = std.ArrayList(Value).init(self.allocator);
-        var newA = valueMap.get(self.children.items[0].id);
-        var newB = valueMap.get(self.children.items[1].id);
-        newA.?.setGradient(self.gradient);
-        newB.?.setGradient(self.gradient);
-        newChildren.append(newA.?) catch {};
-        newChildren.append(newB.?) catch {};
+        var newA = valueMap.get(self.children.items[0].id).?;
+        var newB = valueMap.get(self.children.items[1].id).?;
+        newA.setGradient(self.gradient);
+        newB.setGradient(self.gradient);
+        newChildren.append(newA) catch {};
+        newChildren.append(newB) catch {};
         self.children.deinit();
         self.children = newChildren;
         self.updateValueMap();
@@ -116,11 +126,13 @@ pub const Value = struct {
             newChildren.append(node) catch {};
         }
         newValue.children = newChildren;
+        newValue.updateSingleValue() catch {};
 
         return newValue;
     }
 
     pub fn backwardMultiply(self: *Value) void {
+        std.debug.print("BACKWARD MULTIPLY\n", .{});
         var newChildren = std.ArrayList(Value).init(self.allocator);
         var newA = valueMap.get(self.children.items[0].id);
         var newB = valueMap.get(self.children.items[1].id);
