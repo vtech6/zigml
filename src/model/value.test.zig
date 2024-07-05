@@ -66,19 +66,22 @@ test "value hash map" {
 test "value backpropagate" {
     value.resetState();
     var a = Value.create(1, allocator);
-    var b = Value.create(2, allocator);
+    const b = Value.create(2, allocator);
     var c = Value.create(3, allocator);
-    var d = Value.create(5, allocator);
+    const d = Value.create(5, allocator);
     var e = a.add(b);
     var g = c.multiply(d);
-    g.rename("x");
     var f = e.add(g);
+    g.rename("g");
     f.setGradient(10);
 
     Value.prepareBackpropagation(f);
     Value.backpropagate();
-    std.debug.print("To Backpropagate: {any}\n", .{value.backpropagationOrder.items});
-    std.debug.print("VALUE MAP KEYS: {any}\n", .{value.valueMap.keys()});
+
+    const backpropagationOrder = [7]usize{ 6, 4, 0, 1, 5, 2, 3 };
+    for (0..backpropagationOrder.len) |index| {
+        try expectEqual(value.backpropagationOrder.items[index], backpropagationOrder[index]);
+    }
 
     var _f = value.valueMap.get(f.id).?;
     var _g = value.valueMap.get(g.id).?;
@@ -87,18 +90,22 @@ test "value backpropagate" {
     const _c = value.valueMap.get(c.id).?;
     const _b = value.valueMap.get(b.id).?;
     const _a = value.valueMap.get(a.id).?;
-    std.debug.print("F value: {d}, op: {any}, grad: {d}\n", .{ _f.value, _f.op, _f.gradient });
-    std.debug.print("G value: {d}, op: {any}, grad: {d}\n", .{ _g.value, _g.op, _g.gradient });
-    std.debug.print("E value: {d}, op: {any}, grad: {d}\n", .{ _e.value, _e.op, _e.gradient });
-    std.debug.print("D value: {d}, op: {any}, grad: {d}\n", .{ _d.value, _d.op, _d.gradient });
-    std.debug.print("C value: {d}, op: {any}, grad: {d}\n", .{ _c.value, _c.op, _c.gradient });
-    std.debug.print("B value: {d}, op: {any}, grad: {d}\n", .{ _b.value, _b.op, _b.gradient });
-    std.debug.print("A value: {d}, op: {any}, grad: {d}\n", .{ _a.value, _a.op, _a.gradient });
-    std.debug.print("G children: {d}, \n", .{_g.children.items[0].gradient});
-    a.deinit() catch {};
-    b.deinit() catch {};
-    c.deinit() catch {};
-    d.deinit() catch {};
+
+    try expectEqual(_f.value, 18);
+    try expectEqual(_f.gradient, 10);
+    try expectEqual(_e.value, 3);
+    try expectEqual(_e.gradient, 10);
+    try expectEqual(_g.value, 15);
+    try expectEqual(_g.gradient, 10);
+    try expectEqual(_d.value, 5);
+    try expectEqual(_d.gradient, 30);
+    try expectEqual(_c.value, 3);
+    try expectEqual(_c.gradient, 50);
+    try expectEqual(_b.value, 2);
+    try expectEqual(_b.gradient, 10);
+    try expectEqual(_a.value, 1);
+    try expectEqual(_a.gradient, 10);
+
     _f.deinit() catch {};
     _e.deinit() catch {};
     _g.deinit() catch {};
