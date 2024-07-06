@@ -23,9 +23,10 @@ pub const Neuron = struct {
             const newValue = Value.create(randomFloat, allocator);
             weights.append(newValue) catch {};
         }
+        const randomizedBias = std.crypto.random.float(f32);
         const newNeuron = Neuron{
             .weights = weights,
-            .bias = Value.create(1, allocator),
+            .bias = Value.create(randomizedBias, allocator),
             .output = output,
             .allocator = allocator,
         };
@@ -34,7 +35,7 @@ pub const Neuron = struct {
 
     pub fn activateInput(self: *Neuron, input: [2]f32) !void {
         for (input, 0..) |element, elementIndex| {
-            const newOutput = Value.create(element * self.weights.items[elementIndex].value * self.bias.value, self.allocator);
+            const newOutput = Value.create(element * self.weights.items[elementIndex].value + self.bias.value, self.allocator);
             try self.output.append(newOutput);
         }
     }
