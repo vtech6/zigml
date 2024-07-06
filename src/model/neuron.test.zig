@@ -14,7 +14,8 @@ test "create Neuron" {
 test "feedForward Neuron" {
     var _neuron = Neuron.create(2, testAllocator);
     const input = [2]f32{ 0.0, 1.0 };
-    try _neuron.activateInput(input, testAllocator);
-    try expectEqual(_neuron.output.items[1].value, 10.0);
+    try _neuron.activateInput(input);
+    const w2 = _neuron.weights.items[1].value;
+    try expectEqual(_neuron.output.items[1].value, w2 * input[1]);
     try _neuron.freeMemory();
 }

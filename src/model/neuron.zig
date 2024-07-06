@@ -7,6 +7,7 @@ pub const Neuron = struct {
     bias: Value,
     weights: std.ArrayList(Value),
     output: std.ArrayList(Value),
+    allocator: Allocator,
 
     pub fn freeMemory(self: *Neuron) !void {
         self.weights.deinit();
@@ -18,20 +19,22 @@ pub const Neuron = struct {
         const output = std.ArrayList(Value).init(allocator);
 
         for (0..inputShape) |_| {
-            const newValue = Value.create(10, allocator);
+            const randomFloat = std.crypto.random.float(f32);
+            const newValue = Value.create(randomFloat, allocator);
             weights.append(newValue) catch {};
         }
         const newNeuron = Neuron{
             .weights = weights,
             .bias = Value.create(1, allocator),
             .output = output,
+            .allocator = allocator,
         };
         return newNeuron;
     }
 
-    pub fn activateInput(self: *Neuron, input: [2]f32, allocator: Allocator) !void {
+    pub fn activateInput(self: *Neuron, input: [2]f32) !void {
         for (input, 0..) |element, elementIndex| {
-            const newOutput = Value.create(element * self.weights.items[elementIndex].value * self.bias.value, allocator);
+            const newOutput = Value.create(element * self.weights.items[elementIndex].value * self.bias.value, self.allocator);
             try self.output.append(newOutput);
         }
     }
