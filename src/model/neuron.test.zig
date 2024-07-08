@@ -8,7 +8,7 @@ const expectEqual = std.testing.expectEqual;
 test "create Neuron" {
     var _neuron = Neuron.create(2, testAllocator);
     try expectEqual(2, _neuron.weights.items.len);
-    try _neuron.freeMemory();
+    try _neuron.deinit();
 }
 
 test "activate Neuron" {
@@ -19,6 +19,8 @@ test "activate Neuron" {
     try _neuron.activateInput(input);
     const w2 = _neuron.weights.items[1].value;
     try expectEqual(_neuron.output.items[1].value, (w2 * input.items[1]) + _neuron.bias.value);
-    try _neuron.freeMemory();
+    std.debug.print("Activation: {any}\n", .{_neuron.activation.value});
+    try _neuron.deinit();
+
     input.deinit();
 }
