@@ -23,6 +23,10 @@ pub const Neuron = struct {
         neuronMap.put(self.id, self) catch {};
     }
 
+    pub fn clone(neuron: Neuron) Neuron {
+        return Neuron{ .id = neuron.id, .weights = neuron.weights, .bias = neuron.bias, .output = neuron.output, .activation = neuron.activation, .allocator = neuron.allocator };
+    }
+
     pub fn create(inputShape: usize, allocator: std.mem.Allocator) Neuron {
         var weights = std.ArrayList(Value).init(allocator);
         const output = std.ArrayList(Value).init(allocator);

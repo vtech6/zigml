@@ -7,53 +7,48 @@ const Allocator = std.mem.Allocator;
 pub const Layer = struct {
     output: std.ArrayList(Value),
     neurons: std.ArrayList(Neuron),
+    allocator: Allocator,
 
-    pub fn freeMemory(self: *Layer) !void {
+    pub fn deinit(self: *Layer) !void {
         self.output.deinit();
+        for (self.neurons.items) |item| {
+            try item.deinit();
+        }
         self.neurons.deinit();
     }
 
-    pub fn createInputLayer(allocator: Allocator, inputShape: usize) Layer {
-        var neurons = std.ArrayList(Neuron).init(allocator);
-        for (0..inputShape) |_| {
-            const newNeuron = Neuron.create(allocator, inputShape);
-            neurons.append(newNeuron);
-        }
-    }
-
-    pub fn feedForwardInputLayer() !void {}
-
-    pub fn createDeepLayer(
+    pub fn createInputLayer(
+        input: std.ArrayList(f32),
+        layerSize: usize,
         allocator: Allocator,
-        previousLayerShape: usize,
     ) Layer {
         var neurons = std.ArrayList(Neuron).init(allocator);
-        for (0..previousLayerShape) |_| {
-            const newNeuron = Neuron.create(allocator, previousLayerShape);
-            neurons.append(newNeuron);
+        var output = std.ArrayList(Value).init(allocator);
+        for (0..layerSize) |_| {
+            const newNeuron = Neuron.create(input.items.len, allocator);
+            output.append(newNeuron.activation) catch {};
+            neurons.append(newNeuron) catch {};
         }
-    }
-    pub fn createOutputLayer(
-        allocator: Allocator,
-        previousLayerShape: usize,
-    ) Layer {
-        var neurons = std.ArrayList(Neuron).init(allocator);
-        for (0..previousLayerShape) |_| {
-            const newNeuron = Neuron.create(allocator, previousLayerShape);
-            neurons.append(newNeuron);
-        }
-    }
-
-    pub fn create(allocator: std.mem.Allocator, inputShape: usize) Neuron {
-        var weights = std.ArrayList(Value).init(allocator);
-        for (0..inputShape) |_| {
-            const newValue = Value.create(10);
-            weights.append(newValue) catch {};
-        }
-        const newNeuron = Neuron{
-            .weights = weights,
-            .bias = 0,
+        const newLayer = Layer{
+            .neurons = neurons,
+            .output = output,
+            .allocator = allocator,
         };
-        return newNeuron;
+        return newLayer;
+    }
+
+    pub fn activateInputLayer(self: *Layer, input: std.ArrayList(f32)) !void {
+        var newNeurons = std.ArrayList(Neuron).init(self.allocator);
+        var newOutput = std.ArrayList(Value).init(self.allocator);
+        for (self.neurons.items) |_neuron| {
+            var newNeuron = _neuron;
+            try newNeuron.activateInput(input);
+            try newNeurons.append(newNeuron);
+            try newOutput.append(newNeuron.activation);
+        }
+        self.neurons.deinit();
+        self.output.deinit();
+        self.neurons = newNeurons;
+        self.output = newOutput;
     }
 };
