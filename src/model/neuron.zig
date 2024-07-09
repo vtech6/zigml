@@ -67,4 +67,19 @@ pub const Neuron = struct {
         newActivation.children = children;
         self.activation = newActivation;
     }
+
+    pub fn activateDeep(self: *Neuron, input: std.ArrayList(Value)) !void {
+        var sumOfOutputs: f32 = 0.0;
+        var children = std.ArrayList(Value).init(self.allocator);
+        for (input.items, 0..) |element, elementIndex| {
+            const newOutput = Value.create(element.value * self.weights.items[elementIndex].value + self.bias.value, self.allocator);
+            try children.append(newOutput);
+            sumOfOutputs += newOutput.value;
+            try self.output.append(newOutput);
+        }
+        var newActivation = Value.create(sumOfOutputs, self.allocator);
+        newActivation.rename("Neuron activation");
+        newActivation.children = children;
+        self.activation = newActivation;
+    }
 };

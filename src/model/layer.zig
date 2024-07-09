@@ -18,14 +18,14 @@ pub const Layer = struct {
     }
 
     pub fn createInputLayer(
-        input: std.ArrayList(f32),
+        inputLen: usize,
         layerSize: usize,
         allocator: Allocator,
     ) Layer {
         var neurons = std.ArrayList(Neuron).init(allocator);
         var output = std.ArrayList(Value).init(allocator);
         for (0..layerSize) |_| {
-            const newNeuron = Neuron.create(input.items.len, allocator);
+            const newNeuron = Neuron.create(inputLen, allocator);
             output.append(newNeuron.activation) catch {};
             neurons.append(newNeuron) catch {};
         }
@@ -43,6 +43,41 @@ pub const Layer = struct {
         for (self.neurons.items) |_neuron| {
             var newNeuron = _neuron;
             try newNeuron.activateInput(input);
+            try newNeurons.append(newNeuron);
+            try newOutput.append(newNeuron.activation);
+        }
+        self.neurons.deinit();
+        self.output.deinit();
+        self.neurons = newNeurons;
+        self.output = newOutput;
+    }
+
+    pub fn createDeepLayer(
+        inputLen: usize,
+        layerSize: usize,
+        allocator: Allocator,
+    ) Layer {
+        var neurons = std.ArrayList(Neuron).init(allocator);
+        var output = std.ArrayList(Value).init(allocator);
+        for (0..layerSize) |_| {
+            const newNeuron = Neuron.create(inputLen, allocator);
+            output.append(newNeuron.activation) catch {};
+            neurons.append(newNeuron) catch {};
+        }
+        const newLayer = Layer{
+            .neurons = neurons,
+            .output = output,
+            .allocator = allocator,
+        };
+        return newLayer;
+    }
+
+    pub fn activateDeepLayer(self: *Layer, input: std.ArrayList(Value)) !void {
+        var newNeurons = std.ArrayList(Neuron).init(self.allocator);
+        var newOutput = std.ArrayList(Value).init(self.allocator);
+        for (self.neurons.items) |_neuron| {
+            var newNeuron = _neuron;
+            try newNeuron.activateDeep(input);
             try newNeurons.append(newNeuron);
             try newOutput.append(newNeuron.activation);
         }
