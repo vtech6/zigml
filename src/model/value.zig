@@ -2,6 +2,8 @@ const std = @import("std");
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
 const rl = @import("raylib");
+const utils = @import("utils.zig");
+const graph = @import("graph.zig");
 
 pub var valueMap = std.AutoArrayHashMap(usize, Value).init(std.heap.page_allocator);
 pub var backpropagationOrder = std.ArrayList(usize).init(std.heap.page_allocator);
@@ -80,18 +82,11 @@ pub const Value = struct {
     }
 
     pub fn visualize(self: Value) void {
-        rl.initWindow(windowWidth, windowHeight, "raylib-zig [core] example - basic window");
+        rl.initWindow(graph.windowWidth, graph.windowHeight, "raylib-zig [core] example - basic window");
         defer rl.closeWindow(); // Close window and OpenGL context
 
         rl.setTargetFPS(1); // Set our game to run at 60 frames-per-second
         while (!rl.windowShouldClose()) { // Detect window close button or ESC key
-            // Update
-            //----------------------------------------------------------------------------------
-            // TODO: Update your variables here
-            //----------------------------------------------------------------------------------
-
-            // Draw
-            //----------------------------------------------------------------------------------
             rl.beginDrawing();
             defer rl.endDrawing();
             rl.clearBackground(rl.Color.white);
@@ -99,93 +94,11 @@ pub const Value = struct {
             const nodeHeight: i32 = 50;
             const margin: i32 = 10;
             const nodeX = margin;
-            const nodeY = (windowHeight / 2) - (nodeHeight / 2);
+            const nodeY = (graph.windowHeight / 2) - (nodeHeight / 2);
             const depth = 1;
             const fontSize = 10;
 
-            self.drawChildren(
-                depth,
-                nodeHeight,
-                nodeWidth,
-                nodeX,
-                nodeY,
-                fontSize,
-                margin,
-            ) catch {};
-            //----------------------------------------------------------------------------------
-        }
-    }
-
-    pub fn drawChildren(
-        self: Value,
-        depth: i32,
-        nodeHeight: i32,
-        nodeWidth: i32,
-        nodeX: i32,
-        nodeY: i32,
-        fontSize: i32,
-        margin: i32,
-    ) !void {
-        var buf: [20]u8 = undefined;
-        const terminatedValue = try std.fmt.bufPrintZ(&buf, "value: {d}\nid: {d}", .{ self.value, self.id });
-        const color = randomizeColor(depth);
-        rl.drawRectangle(
-            nodeX,
-            nodeY,
-            nodeWidth,
-            nodeHeight,
-            color,
-        );
-
-        const textOffset = 5;
-
-        rl.drawText(
-            terminatedValue,
-            nodeX + textOffset,
-            nodeY + textOffset,
-            fontSize,
-            rl.Color.black,
-        );
-
-        if (self.children.items.len > 0) {
-            for (self.children.items, 0..) |child, index| {
-                const indexInt: i32 = @intCast(index);
-                const childY: i32 = (indexInt * (nodeHeight + margin)) + nodeY;
-                const childX: i32 = (depth * (nodeWidth + margin)) + margin;
-                const childValue = valueMap.get(child);
-                try childValue.?.drawChildren(
-                    depth + 1,
-                    nodeHeight,
-                    nodeWidth,
-                    childX,
-                    childY,
-                    fontSize,
-                    margin,
-                );
-            }
+            graph.drawNode(self, depth, nodeHeight, nodeWidth, nodeX, nodeY, fontSize, margin) catch {};
         }
     }
 };
-
-fn randomizeColor(depth: i32) rl.Color {
-    const castDepth: u32 = @intCast(depth);
-
-    const red: u32 = (castDepth * 60) % 255;
-    const green: u32 = (castDepth * 80) % 255;
-    const blue: u32 = (castDepth * 100) % 255;
-
-    const redSqueezed: u8 = @intCast(red);
-    const greenSqueezed: u8 = @intCast(green);
-    const blueSqueezed: u8 = @intCast(blue);
-
-    const color = rl.Color{
-        .r = redSqueezed,
-        .g = greenSqueezed,
-        .b = blueSqueezed,
-        .a = 255,
-    };
-    return color;
-}
-
-const windowWidth: i32 = 800;
-const windowHeight: i32 = 450;
