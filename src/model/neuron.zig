@@ -17,6 +17,10 @@ pub const Neuron = struct {
     pub fn deinit(self: *const Neuron) !void {
         self.weights.deinit();
         self.output.deinit();
+        for (self.activation.children.items) |activationChild| {
+            value.valueMap.getPtr(activationChild.id).?.deinit() catch {};
+        }
+        value.valueMap.getPtr(self.activation.id).?.deinit() catch {};
         self.activation.children.deinit();
     }
     pub fn updateSingleNeuron(self: Value) !void {
@@ -57,14 +61,17 @@ pub const Neuron = struct {
         var sumOfOutputs: f32 = 0.0;
         var children = std.ArrayList(Value).init(self.allocator);
         for (input.items, 0..) |element, elementIndex| {
-            const newOutput = Value.create(element * self.weights.items[elementIndex].value + self.bias.value, self.allocator);
+            var newElement = Value.create(element * self.weights.items[elementIndex].value, self.allocator);
+            const newOutput = newElement.add(self.bias);
             try children.append(newOutput);
             sumOfOutputs += newOutput.value;
             try self.output.append(newOutput);
+            try newElement.deinit();
         }
         var newActivation = Value.create(sumOfOutputs, self.allocator);
         newActivation.rename("Neuron activation");
         newActivation.children = children;
+        newActivation.op = value.OPS.activate;
         self.activation = newActivation;
     }
 
@@ -72,14 +79,21 @@ pub const Neuron = struct {
         var sumOfOutputs: f32 = 0.0;
         var children = std.ArrayList(Value).init(self.allocator);
         for (input.items, 0..) |element, elementIndex| {
-            const newOutput = Value.create(element.value * self.weights.items[elementIndex].value + self.bias.value, self.allocator);
+            var newElement = element;
+
+            var weighedElement = newElement.multiply(self.weights.items[elementIndex]);
+            const newOutput = weighedElement.add(self.bias);
             try children.append(newOutput);
             sumOfOutputs += newOutput.value;
             try self.output.append(newOutput);
+            newElement.updateSingleValue() catch {};
+            newOutput.updateSingleValue() catch {};
+            try weighedElement.deinit();
         }
         var newActivation = Value.create(sumOfOutputs, self.allocator);
         newActivation.rename("Neuron activation");
         newActivation.children = children;
+        newActivation.op = value.OPS.activate;
         self.activation = newActivation;
     }
 };

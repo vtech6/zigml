@@ -83,6 +83,8 @@ pub const Layer = struct {
         }
         self.neurons.deinit();
         self.output.deinit();
+        std.debug.print("newNeurons: {any}\n", .{newOutput.items[0].op});
+
         self.neurons = newNeurons;
         self.output = newOutput;
     }

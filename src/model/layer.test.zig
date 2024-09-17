@@ -51,26 +51,34 @@ test "activate deep layer" {
 }
 
 test "combine layers" {
+    value.resetState();
     var input = std.ArrayList(f32).init(testAllocator);
     try input.append(1.0);
     try input.append(3.0);
     var l1 = Layer.createInputLayer(input.items.len, 3, testAllocator);
     try l1.activateInputLayer(input);
-    var l2 = Layer.createInputLayer(l1.output.items.len, 1, testAllocator);
-    try l2.activateDeepLayer(l2.output);
+    var l2 = Layer.createDeepLayer(l1.output.items.len, 1, testAllocator);
+    print("l2 output op pre-backprop: {any}\n", .{l2.output.items[0].op});
+    try l2.activateDeepLayer(l1.output);
     print("l1 neurons: {any}\n", .{l1.neurons.items.len});
     print("l1 first output: {d}\n", .{l1.output.items[0].value});
     print("l2 neurons: {any}\n", .{l2.neurons.items.len});
     print("l2 output: {d}\n", .{l2.output.items[0].value});
-    const l1n1w1grad = l1.neurons.items[0].weights.items[0].gradient;
-    print("l1 n1 w1: {d}\n", .{l1n1w1grad});
+    print("l2 output children len: {d}\n", .{l2.output.items[0].children.items.len});
+    const l1n1w1 = value.valueMap.getPtr(l1.neurons.items[0].weights.items[0].id).?;
+    const l1n1w1grad = l1n1w1.gradient;
+    print("l1 n1 w1 grad: {d}\n", .{l1n1w1.gradient});
     try expectEqual(l2.output.items[0].value == 0, false);
     try expectEqual(l1n1w1grad == 1, true);
-    const finalOutput = l2.output.items[0];
-    Value.prepareBackpropagation(finalOutput);
-    Value.backpropagate();
+    var finalOutput = l2.output.items[0];
+    finalOutput.backward() catch {};
+    print("l2 output op child1: {any}\n", .{l2.output.items[0].children.items[1]});
 
+    Value.backpropagate();
+    print("l2 output op post-backprop: {any}\n", .{l2.output.items[0].op});
+    print("l1n1 output op {any}\n", .{l1.neurons.items[0].weights.items[0].gradient});
+
+    print("l1 n1 w1 grad: {d}\n", .{l1n1w1grad});
     input.deinit();
-    try l1.deinit();
-    try l2.deinit();
+    //TODO: FIX BACKPROP SO THAT L1N1W1 gradient is not equal 1;
 }

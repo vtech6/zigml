@@ -1,19 +1,14 @@
 const std = @import("std");
-
+const value = @import("./model/value.zig");
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
-
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
-
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
-
-    try bw.flush(); // don't forget to flush!
+    const a = value.Value.create(5, std.heap.page_allocator);
+    const b = value.Value.create(3, std.heap.page_allocator);
+    const c = a.add(b);
+    const d = value.Value.create(42, std.heap.page_allocator);
+    const e = value.Value.create(13, std.heap.page_allocator);
+    const f = e.add(d);
+    const g = c.add(f);
+    g.visualize();
 }
 
 test "simple test" {
