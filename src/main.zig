@@ -7,7 +7,7 @@ pub fn main() !void {
     const d = value.Value.create(42, std.heap.page_allocator);
     const e = value.Value.create(13, std.heap.page_allocator);
     const f = e.add(d);
-    const g = c.add(f);
+    const g = c.multiply(f);
     g.visualize();
 }
 

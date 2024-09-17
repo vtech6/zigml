@@ -14,11 +14,16 @@ pub fn drawNode(
     fontSize: i32,
     margin: i32,
 ) !void {
-    var buf: [20]u8 = undefined;
-    const terminatedValue = try std.fmt.bufPrintZ(
-        &buf,
-        "value: {d}\nid: {d}",
-        .{ value.value, value.id },
+    var buf1: [48]u8 = undefined;
+    const info1 = try std.fmt.bufPrintZ(
+        &buf1,
+        "id: {d}\nvalue: {d}\nop: {s}\ngrad: {d}",
+        .{
+            value.id,
+            value.value,
+            @tagName(value.op),
+            value.gradient,
+        },
     );
     const color = utils.randomizeColor(depth);
     rl.drawRectangle(nodeX, nodeY, nodeWidth, nodeHeight, color);
@@ -26,7 +31,7 @@ pub fn drawNode(
     const textOffset = 5;
 
     rl.drawText(
-        terminatedValue,
+        info1,
         nodeX + textOffset,
         nodeY + textOffset,
         fontSize,
@@ -51,7 +56,7 @@ fn drawChildren(
         for (value.children.items, 0..) |child, index| {
             const indexInt: i32 = @intCast(index);
             const childX: i32 = ((depth - 1) * (nodeWidth + margin));
-            const childY: i32 = parentY - (childBlockHeight * (indexInt)) + 100 - margin;
+            const childY: i32 = parentY - (childBlockHeight * (indexInt)) + 150 - @divFloor(nodeHeight, 2);
             std.debug.print("{d}, {d}, {d}, {d}\n", .{ childY, indexInt, depth, childBlockHeight });
             const childValue = _value.valueMap.get(child);
             const offset = @divFloor(nodeHeight, 2);
@@ -79,5 +84,5 @@ fn drawChildren(
 }
 
 pub const windowWidth: i32 = 800;
-pub const windowHeight: i32 = 450;
+pub const windowHeight: i32 = 560;
 pub const depthLimit: i32 = 5;

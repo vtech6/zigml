@@ -50,6 +50,15 @@ pub const Value = struct {
         var newValue = Value.create(self.value + _b.value, self.allocator);
         newValue.children.append(self.id) catch {};
         newValue.children.append(_b.id) catch {};
+        newValue.op = OPS.add;
+        valueMap.put(newValue.id, newValue) catch {};
+        return newValue;
+    }
+    pub fn multiply(self: Value, _b: Value) Value {
+        var newValue = Value.create(self.value * _b.value, self.allocator);
+        newValue.children.append(self.id) catch {};
+        newValue.children.append(_b.id) catch {};
+        newValue.op = OPS.multiply;
         valueMap.put(newValue.id, newValue) catch {};
         return newValue;
     }
@@ -90,8 +99,8 @@ pub const Value = struct {
             rl.beginDrawing();
             defer rl.endDrawing();
             rl.clearBackground(rl.Color.white);
-            const nodeWidth = 50;
-            const nodeHeight: i32 = 50;
+            const nodeWidth = 56;
+            const nodeHeight: i32 = 56;
             const margin: i32 = 10;
             const nodeX = margin;
             const nodeY = (graph.windowHeight / 2) - (nodeHeight / 2);
