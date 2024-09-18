@@ -1,15 +1,18 @@
 const std = @import("std");
 const value = @import("./model/value.zig");
 pub fn main() !void {
-    const a = value.Value.create(5, std.heap.page_allocator);
-    const b = value.Value.create(3, std.heap.page_allocator);
-    const c = a.add(b);
-    const d = value.Value.create(42, std.heap.page_allocator);
-    const e = value.Value.create(13, std.heap.page_allocator);
-    const f = e.add(d);
-    var g = c.multiply(f);
-    g.backpropagate();
-    g.visualize();
+    const a = value.Value.create(2, std.heap.page_allocator);
+    const b = value.Value.create(0, std.heap.page_allocator);
+    const d = value.Value.create(-3, std.heap.page_allocator);
+    const e = value.Value.create(1, std.heap.page_allocator);
+    const c = a.multiply(d);
+    const f = b.multiply(e);
+    const bias = value.Value.create(6.8813735870195432, std.heap.page_allocator);
+    const g = c.add(f);
+    const h = g.add(bias);
+    var i = h.tanh();
+    i.backpropagate();
+    i.visualize();
 }
 
 test "simple test" {

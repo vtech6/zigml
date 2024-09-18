@@ -4,10 +4,11 @@ const Allocator = std.mem.Allocator;
 const rl = @import("raylib");
 const utils = @import("utils.zig");
 const graph = @import("graph.zig");
+const math = std.math;
 
 pub var valueMap = std.AutoArrayHashMap(usize, Value).init(std.heap.page_allocator);
 pub var backpropagationOrder = std.ArrayList(usize).init(std.heap.page_allocator);
-pub const OPS = enum { add, init, multiply, activate };
+pub const OPS = enum { add, init, multiply, activate, tanh };
 
 pub var idTracker: usize = 0;
 
@@ -57,6 +58,7 @@ pub const Value = struct {
             OPS.multiply => self.backwardMultiply(),
             OPS.init => {},
             OPS.activate => {},
+            OPS.tanh => {},
         }
     }
 
@@ -84,6 +86,23 @@ pub const Value = struct {
         newValue.op = OPS.multiply;
         valueMap.put(newValue.id, newValue) catch {};
         return newValue;
+    }
+
+    pub fn tanh(self: Value) Value {
+        const x = self.value;
+        const result = (math.exp(2 * x) - 1) / (math.exp(2 * x) + 1);
+        var resultValue = Value.create(result, self.allocator);
+        resultValue.op = OPS.tanh;
+        resultValue.children.append(self.id) catch {};
+        valueMap.put(resultValue.id, resultValue) catch {};
+        std.debug.print("{d}", .{resultValue.value});
+        return resultValue;
+    }
+
+    pub fn backwardTanh(self: Value) void {
+        var newValue = self;
+        newValue.gradient += (1 - math.pow(f32, self.value, 2)) * self.gradient;
+        valueMap.put(self.id, newValue);
     }
 
     pub fn updateSingleValue(self: Value) !void {
