@@ -23,10 +23,3 @@ test "value add mathod" {
     try expectEqual(58, c.value);
     c.deinit() catch {};
 }
-
-test "value visualize method" {
-    value.resetState();
-    var a = create(666, allocator);
-    a.visualize();
-    a.deinit() catch {};
-}

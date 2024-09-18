@@ -30,13 +30,35 @@ pub const Value = struct {
 
     pub fn create(value: f32, allocator: Allocator) Value {
         const newChildren = std.ArrayList(usize).init(allocator);
-        const newNode = Value{ .id = idTracker, .value = value, .children = newChildren, .allocator = allocator };
+        const newNode = Value{
+            .id = idTracker,
+            .value = value,
+            .children = newChildren,
+            .allocator = allocator,
+        };
         idTracker += 1;
         valueMap.put(newNode.id, newNode) catch {};
         return newNode;
     }
 
-    pub fn backpropagate() void {}
+    pub fn backpropagate(self: Value) void {
+        self.calculateGradient();
+        if (self.children.items.len > 0) {
+            for (self.children.items) |child| {
+                const childValue = valueMap.get(child).?;
+                childValue.backpropagate();
+            }
+        }
+    }
+
+    pub fn calculateGradient(self: Value) void {
+        switch (self.op) {
+            OPS.add => self.backwardAdd(),
+            OPS.multiply => self.backwardMultiply(),
+            OPS.init => {},
+            OPS.activate => {},
+        }
+    }
 
     //Neural network methods
 
@@ -54,6 +76,7 @@ pub const Value = struct {
         valueMap.put(newValue.id, newValue) catch {};
         return newValue;
     }
+
     pub fn multiply(self: Value, _b: Value) Value {
         var newValue = Value.create(self.value * _b.value, self.allocator);
         newValue.children.append(self.id) catch {};
@@ -67,17 +90,24 @@ pub const Value = struct {
         valueMap.put(self.id, self) catch {};
     }
 
-    fn backwardAdd(self: *Value) void {
-        var newChildren = std.ArrayList(Value).init(self.allocator);
-        var newA = valueMap.get(self.children.items[0].id).?;
-        var newB = valueMap.get(self.children.items[1].id).?;
-        newA.setGradient(self.gradient);
-        newB.setGradient(self.gradient);
-        newChildren.append(newA) catch {};
-        newChildren.append(newB) catch {};
-        self.children.deinit();
-        self.children = newChildren;
-        self.updateValueMap();
+    fn backwardAdd(self: Value) void {
+        for (self.children.items) |child| {
+            var childValue = valueMap.get(child).?;
+            childValue.gradient += self.gradient;
+            valueMap.put(childValue.id, childValue) catch {};
+        }
+    }
+
+    fn backwardMultiply(self: Value) void {
+        const children = self.children.items;
+        var child1 = valueMap.get(children[0]).?;
+        var child2 = valueMap.get(children[1]).?;
+
+        child1.gradient += child2.value * self.gradient;
+        child2.gradient += child1.value * self.gradient;
+
+        valueMap.put(child1.id, child1) catch {};
+        valueMap.put(child2.id, child2) catch {};
     }
 
     //Utility methods
@@ -99,9 +129,9 @@ pub const Value = struct {
             rl.beginDrawing();
             defer rl.endDrawing();
             rl.clearBackground(rl.Color.white);
-            const nodeWidth = 56;
-            const nodeHeight: i32 = 56;
-            const margin: i32 = 10;
+            const nodeWidth = 64;
+            const nodeHeight: i32 = 64;
+            const margin: i32 = 8;
             const nodeX = margin;
             const nodeY = (graph.windowHeight / 2) - (nodeHeight / 2);
             const depth = 1;
