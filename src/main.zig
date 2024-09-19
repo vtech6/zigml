@@ -11,7 +11,12 @@ pub fn main() !void {
     const g = c.add(f);
     const h = g.add(bias);
     var i = h.tanh();
+    i.gradient = 1.0;
     i.backpropagate();
+    const x1 = value.valueMap.get(a.id).?;
+    const w1 = value.valueMap.get(d.id).?;
+
+    std.debug.print("X1 grad: {d}, W1 grad: {d}\n", .{ x1.gradient, w1.gradient });
     i.visualize();
 }
 

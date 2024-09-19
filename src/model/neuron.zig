@@ -8,9 +8,9 @@ pub var idTracker: usize = 0;
 
 pub const Neuron = struct {
     id: usize,
-    bias: Value,
-    weights: std.ArrayList(Value),
-    output: std.ArrayList(Value),
+    bias: usize,
+    weights: std.ArrayList(usize),
+    output: std.ArrayList(usize),
     activation: Value,
     allocator: Allocator,
 

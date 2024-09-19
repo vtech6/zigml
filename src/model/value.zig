@@ -19,7 +19,7 @@ pub fn resetState() void {
 pub const Value = struct {
     id: usize = 0,
     value: f32,
-    gradient: f32 = 1.0,
+    gradient: f32 = 0.0,
     children: ArrayList(usize),
     label: []const u8 = "value",
     op: OPS = OPS.init,
@@ -58,7 +58,7 @@ pub const Value = struct {
             OPS.multiply => self.backwardMultiply(),
             OPS.init => {},
             OPS.activate => {},
-            OPS.tanh => {},
+            OPS.tanh => self.backwardTanh(),
         }
     }
 
@@ -100,9 +100,9 @@ pub const Value = struct {
     }
 
     pub fn backwardTanh(self: Value) void {
-        var newValue = self;
+        var newValue = valueMap.get(self.children.items[0]).?;
         newValue.gradient += (1 - math.pow(f32, self.value, 2)) * self.gradient;
-        valueMap.put(self.id, newValue);
+        valueMap.put(newValue.id, newValue) catch {};
     }
 
     pub fn updateSingleValue(self: Value) !void {
