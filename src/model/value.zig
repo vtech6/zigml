@@ -159,4 +159,8 @@ pub const Value = struct {
             graph.drawNode(self, depth, nodeHeight, nodeWidth, nodeX, nodeY, fontSize, margin) catch {};
         }
     }
+
+    pub fn update(self: Value) void {
+        valueMap.put(self.id, self) catch {};
+    }
 };

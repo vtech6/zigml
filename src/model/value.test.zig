@@ -23,3 +23,12 @@ test "value add mathod" {
     try expectEqual(58, c.value);
     c.deinit() catch {};
 }
+
+test "value update method" {
+    value.resetState();
+    var a = create(666, allocator);
+    a.value = 999;
+    a.update();
+    const _a = value.valueMap.get(a.id).?;
+    try expectEqual(999, _a.value);
+}

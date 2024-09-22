@@ -11,19 +11,15 @@ pub const Neuron = struct {
     bias: usize,
     weights: std.ArrayList(usize),
     output: std.ArrayList(usize),
-    activation: Value,
+    activation: usize,
     allocator: Allocator,
 
-    pub fn deinit(self: *const Neuron) !void {
+    pub fn deinit(self: Neuron) !void {
         self.weights.deinit();
         self.output.deinit();
-        for (self.activation.children.items) |activationChild| {
-            value.valueMap.getPtr(activationChild.id).?.deinit() catch {};
-        }
-        value.valueMap.getPtr(self.activation.id).?.deinit() catch {};
-        self.activation.children.deinit();
     }
-    pub fn updateSingleNeuron(self: Value) !void {
+
+    pub fn update(self: Value) !void {
         neuronMap.put(self.id, self) catch {};
     }
 
@@ -32,23 +28,25 @@ pub const Neuron = struct {
     }
 
     pub fn create(inputShape: usize, allocator: std.mem.Allocator) Neuron {
-        var weights = std.ArrayList(Value).init(allocator);
-        const output = std.ArrayList(Value).init(allocator);
+        var weights = std.ArrayList(usize).init(allocator);
+        const output = std.ArrayList(usize).init(allocator);
 
         const rng = randomGenerator.random();
 
         for (0..inputShape) |_| {
             const randomFloat = rng.float(f32);
             const newValue = Value.create(randomFloat, allocator);
-            weights.append(newValue) catch {};
+            weights.append(newValue.id) catch {};
         }
         const randomizedBias = rng.float(f32);
+        const biasValue = Value.create(randomizedBias, allocator);
+        const activationValue = Value.create(0, allocator);
         const newNeuron = Neuron{
             .id = idTracker,
             .weights = weights,
-            .bias = Value.create(randomizedBias, allocator),
+            .bias = biasValue.id,
             .output = output,
-            .activation = Value.create(0, allocator),
+            .activation = activationValue.id,
             .allocator = allocator,
         };
 
@@ -59,41 +57,50 @@ pub const Neuron = struct {
 
     pub fn activateInput(self: *Neuron, input: std.ArrayList(f32)) !void {
         var sumOfOutputs: f32 = 0.0;
-        var children = std.ArrayList(Value).init(self.allocator);
+        var children = std.ArrayList(usize).init(self.allocator);
         for (input.items, 0..) |element, elementIndex| {
-            var newElement = Value.create(element * self.weights.items[elementIndex].value, self.allocator);
-            const newOutput = newElement.add(self.bias);
-            try children.append(newOutput);
+            const weightValue = value.valueMap.get(self.weights.items[elementIndex]).?;
+            const bias = value.valueMap.get(self.bias).?;
+            var newElement = Value.create(
+                element * weightValue.value,
+                self.allocator,
+            );
+            var newOutput = newElement.add(bias);
+            try children.append(newOutput.id);
             sumOfOutputs += newOutput.value;
-            try self.output.append(newOutput);
+            try self.output.append(newOutput.id);
             try newElement.deinit();
+            try newOutput.deinit();
         }
         var newActivation = Value.create(sumOfOutputs, self.allocator);
         newActivation.rename("Neuron activation");
         newActivation.children = children;
         newActivation.op = value.OPS.activate;
-        self.activation = newActivation;
+        newActivation.update();
+        self.activation = newActivation.id;
+        try newActivation.deinit();
     }
 
     pub fn activateDeep(self: *Neuron, input: std.ArrayList(Value)) !void {
         var sumOfOutputs: f32 = 0.0;
-        var children = std.ArrayList(Value).init(self.allocator);
+        var children = std.ArrayList(usize).init(self.allocator);
         for (input.items, 0..) |element, elementIndex| {
             var newElement = element;
-
-            var weighedElement = newElement.multiply(self.weights.items[elementIndex]);
-            const newOutput = weighedElement.add(self.bias);
+            const weight = value.valueMap.get(self.weights.items[elementIndex]).?;
+            const bias = value.valueMap.get(self.bias).?;
+            var weighedElement = newElement.multiply(weight);
+            const newOutput = weighedElement.add(bias);
             try children.append(newOutput);
             sumOfOutputs += newOutput.value;
-            try self.output.append(newOutput);
-            newElement.updateSingleValue() catch {};
-            newOutput.updateSingleValue() catch {};
-            try weighedElement.deinit();
+            try self.output.append(newOutput.id);
+            newElement.update() catch {};
+            newOutput.update() catch {};
         }
         var newActivation = Value.create(sumOfOutputs, self.allocator);
         newActivation.rename("Neuron activation");
         newActivation.children = children;
         newActivation.op = value.OPS.activate;
-        self.activation = newActivation;
+        newActivation.update();
+        self.activation = newActivation.id;
     }
 };
