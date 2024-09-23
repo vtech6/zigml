@@ -23,6 +23,7 @@ pub fn cleanup() void {
         _value.deinit() catch {};
     }
     valueMap.clearAndFree();
+    resetState();
 }
 
 pub const Value = struct {
@@ -47,7 +48,7 @@ pub const Value = struct {
             .allocator = allocator,
         };
         idTracker += 1;
-        valueMap.put(newNode.id, newNode) catch {};
+        newNode.update();
         return newNode;
     }
 
