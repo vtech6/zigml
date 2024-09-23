@@ -83,6 +83,6 @@ fn drawChildren(
     }
 }
 
-pub const windowWidth: i32 = 800;
-pub const windowHeight: i32 = 560;
+pub const windowWidth: i32 = 560;
+pub const windowHeight: i32 = 800;
 pub const depthLimit: i32 = 10;
