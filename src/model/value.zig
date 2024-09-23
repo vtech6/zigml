@@ -85,7 +85,7 @@ pub const Value = struct {
         newValue.children.append(self.id) catch {};
         newValue.children.append(_b.id) catch {};
         newValue.op = OPS.add;
-        valueMap.put(newValue.id, newValue) catch {};
+        newValue.update();
         return newValue;
     }
 
@@ -94,7 +94,7 @@ pub const Value = struct {
         newValue.children.append(self.id) catch {};
         newValue.children.append(_b.id) catch {};
         newValue.op = OPS.multiply;
-        valueMap.put(newValue.id, newValue) catch {};
+        newValue.update();
         return newValue;
     }
 
@@ -105,14 +105,13 @@ pub const Value = struct {
         resultValue.op = OPS.tanh;
         resultValue.children.append(self.id) catch {};
         valueMap.put(resultValue.id, resultValue) catch {};
-        std.debug.print("{d}", .{resultValue.value});
         return resultValue;
     }
 
     pub fn backwardTanh(self: Value) void {
         var newValue = valueMap.get(self.children.items[0]).?;
         newValue.gradient += (1 - math.pow(f32, self.value, 2)) * self.gradient;
-        valueMap.put(newValue.id, newValue) catch {};
+        newValue.update();
     }
 
     pub fn updateSingleValue(self: Value) !void {
