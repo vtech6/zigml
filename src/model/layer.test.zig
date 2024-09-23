@@ -30,3 +30,19 @@ test "activate input layer" {
     layer.cleanup();
     input.deinit();
 }
+
+test "activate deep layer" {
+    layer.resetState();
+    var newLayer = Layer.createLayer(2, allocator);
+    var input = std.ArrayList(usize).init(allocator);
+    try input.append(Value.create(0.5, allocator).id);
+    try input.append(Value.create(-1, allocator).id);
+    newLayer.activateDeepLayer(input);
+    const output1 = value.valueMap.get(newLayer.output.items[0]).?;
+    const output2 = value.valueMap.get(newLayer.output.items[1]).?;
+
+    try expectEqual(output1.value, 0.21914873);
+    try expectEqual(output2.value, -0.0615547);
+    layer.cleanup();
+    input.deinit();
+}

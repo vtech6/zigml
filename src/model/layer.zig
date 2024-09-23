@@ -77,20 +77,15 @@ pub const Layer = struct {
         self.update();
     }
 
-    pub fn activateDeepLayer(self: *Layer, input: std.ArrayList(Value)) !void {
-        var newNeurons = std.ArrayList(Neuron).init(self.allocator);
-        var newOutput = std.ArrayList(Value).init(self.allocator);
-        for (self.neurons.items) |_neuron| {
-            var newNeuron = _neuron;
-            try newNeuron.activateDeep(input);
-            try newNeurons.append(newNeuron);
-            try newOutput.append(newNeuron.activation);
+    pub fn activateDeepLayer(self: *Layer, input: std.ArrayList(usize)) void {
+        var activations = std.ArrayList(usize).init(self.allocator);
+        for (self.neurons.items) |neuronId| {
+            var _neuron = neuron.neuronMap.get(neuronId).?;
+            _neuron.activateDeep(input) catch {};
+            activations.append(_neuron.activation) catch {};
         }
-        self.neurons.deinit();
         self.output.deinit();
-        std.debug.print("newNeurons: {any}\n", .{newOutput.items[0].op});
-
-        self.neurons = newNeurons;
-        self.output = newOutput;
+        self.output = activations;
+        self.update();
     }
 };
