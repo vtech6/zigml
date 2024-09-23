@@ -16,6 +16,15 @@ pub fn resetState() void {
     idTracker = 0;
 }
 
+pub fn cleanup() void {
+    const valueMapKeys = valueMap.keys();
+    for (valueMapKeys) |valueKey| {
+        var _value = valueMap.get(valueKey).?;
+        _value.deinit() catch {};
+    }
+    valueMap.clearAndFree();
+}
+
 pub const Value = struct {
     id: usize = 0,
     value: f32,

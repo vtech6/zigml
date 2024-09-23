@@ -24,6 +24,18 @@ test "value add mathod" {
     c.deinit() catch {};
 }
 
+test "value add mathod extensive" {
+    value.resetState();
+    const a = create(21, allocator);
+    const b = create(37, allocator);
+    const c = a.add(b);
+    const d = a.add(c);
+    const e = c.add(a);
+    const f = e.add(d);
+    try expectEqual(158, f.value);
+    value.cleanup();
+}
+
 test "value update method" {
     value.resetState();
     var a = create(666, allocator);
