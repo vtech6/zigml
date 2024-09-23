@@ -7,8 +7,8 @@ pub const testAllocator = std.heap.page_allocator;
 pub fn main() !void {
     var _neuron = Neuron.create(2, testAllocator);
     var input = std.ArrayList(usize).init(testAllocator);
-    try input.append(Value.create(3, testAllocator).id);
-    try input.append(Value.create(5, testAllocator).id);
+    try input.append(Value.create(2, testAllocator).id);
+    try input.append(Value.create(-2, testAllocator).id);
     try _neuron.activateDeep(input);
     const w1 = value.valueMap.get(_neuron.weights.items[0]).?.value;
     const w2 = value.valueMap.get(_neuron.weights.items[1]).?.value;

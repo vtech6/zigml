@@ -3,6 +3,7 @@ const ArrayList = std.ArrayList;
 const value = @import("value.zig");
 const Value = value.Value;
 const Allocator = std.mem.Allocator;
+const Activation = @import("activation.zig").Activation;
 pub var neuronMap = std.AutoArrayHashMap(usize, Neuron).init(std.heap.page_allocator);
 var randomGenerator = std.rand.DefaultPrng.init(42);
 pub var idTracker: usize = 0;
@@ -28,6 +29,7 @@ pub const Neuron = struct {
     weights: ArrayList(usize),
     output: ArrayList(usize),
     activation: usize,
+    activationFunction: Activation = Activation.tanh,
     allocator: Allocator,
 
     pub fn deinit(self: *Neuron) !void {
@@ -85,12 +87,18 @@ pub const Neuron = struct {
             try self.output.append(newElement.id);
         }
         const bias = value.valueMap.get(self.bias).?;
-        const sumOfOutputsValue = Value.create(sumOfOutputs, self.allocator);
-        var newActivation = sumOfOutputsValue.add(bias);
+        var sumOfOutputsValue = Value.create(sumOfOutputs, self.allocator);
+        sumOfOutputsValue.op = value.OPS.add;
+        sumOfOutputsValue.children.deinit();
+        sumOfOutputsValue.children = children;
+        sumOfOutputsValue.update();
+        const sumOfOutputsValueWithBias = sumOfOutputsValue.add(bias);
+        var newActivation: Value = undefined;
+        switch (self.activationFunction) {
+            Activation.tanh => newActivation = sumOfOutputsValueWithBias.tanh(),
+            Activation.exp => {},
+        }
         newActivation.rename("Neuron activation");
-        newActivation.children.deinit();
-        newActivation.children = children;
-        newActivation.op = value.OPS.activate;
         newActivation.update();
         self.activation = newActivation.id;
         self.update();
@@ -108,12 +116,19 @@ pub const Neuron = struct {
             try self.output.append(newElement.id);
         }
         const bias = value.valueMap.get(self.bias).?;
-        const sumOfOutputsValue = Value.create(sumOfOutputs, self.allocator);
-        var newActivation = sumOfOutputsValue.add(bias);
+        var sumOfOutputsValue = Value.create(sumOfOutputs, self.allocator);
+        sumOfOutputsValue.op = value.OPS.add;
+        sumOfOutputsValue.children.deinit();
+        sumOfOutputsValue.children = children;
+        sumOfOutputsValue.update();
+        const sumOfOutputsValueWithBias = sumOfOutputsValue.add(bias);
+        var newActivation: Value = undefined;
+        switch (self.activationFunction) {
+            Activation.tanh => newActivation = sumOfOutputsValueWithBias.tanh(),
+            Activation.exp => {},
+        }
+
         newActivation.rename("Neuron activation");
-        newActivation.children.deinit();
-        newActivation.children = children;
-        newActivation.op = value.OPS.activate;
         newActivation.update();
         self.activation = newActivation.id;
         self.update();

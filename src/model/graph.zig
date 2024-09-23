@@ -14,7 +14,7 @@ pub fn drawNode(
     fontSize: i32,
     margin: i32,
 ) !void {
-    var buf1: [48]u8 = undefined;
+    var buf1: [56]u8 = undefined;
     const info1 = try std.fmt.bufPrintZ(
         &buf1,
         "id: {d}\nvalue: {d}\nop: {s}\ngrad: {d}",
@@ -85,4 +85,4 @@ fn drawChildren(
 
 pub const windowWidth: i32 = 800;
 pub const windowHeight: i32 = 560;
-pub const depthLimit: i32 = 5;
+pub const depthLimit: i32 = 10;
