@@ -20,7 +20,7 @@ pub fn cleanup() void {
     const valueMapKeys = valueMap.keys();
     for (valueMapKeys) |valueKey| {
         var _value = valueMap.get(valueKey).?;
-        _value.deinit() catch {};
+        _value.deinit();
     }
     valueMap.clearAndFree();
     resetState();
@@ -35,7 +35,7 @@ pub const Value = struct {
     op: OPS = OPS.init,
     allocator: Allocator,
 
-    pub fn deinit(self: *Value) !void {
+    pub fn deinit(self: *Value) void {
         self.children.deinit();
     }
 
