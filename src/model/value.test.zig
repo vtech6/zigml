@@ -12,7 +12,7 @@ test "value indexing" {
     var c = a.add(b);
     try expectEqual(true, a.id < b.id);
     try expectEqual(true, b.id < c.id);
-    c.deinit() catch {};
+    c.deinit();
 }
 
 test "value add method" {
@@ -21,7 +21,7 @@ test "value add method" {
     const b = create(37, allocator);
     var c = a.add(b);
     try expectEqual(58, c.value);
-    c.deinit() catch {};
+    c.deinit();
 }
 
 test "value add method extensive" {

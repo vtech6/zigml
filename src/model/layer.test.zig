@@ -46,3 +46,26 @@ test "activate deep layer" {
     layer.cleanup();
     input.deinit();
 }
+
+test "pass value between layers" {
+    layer.resetState();
+    var newLayer = Layer.createLayer(2, allocator);
+    var input = std.ArrayList(f32).init(allocator);
+    try input.append(0.0);
+    try input.append(1.1);
+    newLayer.activateInputLayer(input);
+    var newLayer2 = Layer.createLayer(2, allocator);
+    newLayer2.activateDeepLayer(newLayer.output);
+    const output1 = value.valueMap.get(newLayer.output.items[0]).?;
+    const output2 = value.valueMap.get(newLayer.output.items[1]).?;
+    const output3 = value.valueMap.get(newLayer2.output.items[0]).?;
+    const output4 = value.valueMap.get(newLayer2.output.items[1]).?;
+
+    try expectEqual(output1.value, 0.4840346);
+    try expectEqual(output2.value, 0.9437493);
+    try expectEqual(output3.value, 0.87674046);
+    try expectEqual(output4.value, 0.92418176);
+
+    layer.cleanup();
+    input.deinit();
+}
