@@ -84,6 +84,18 @@ pub const Layer = struct {
             _neuron.activateDeep(input) catch {};
             activations.append(_neuron.activation) catch {};
         }
+        if (self.id == 1) {
+            std.debug.print("Activation values: {d}, {d}, {d}\n", .{
+                activations.items[0],
+                activations.items[1],
+                activations.items[2],
+            });
+        }
+
+        std.debug.print("activations length for layer {d}: {d}\n", .{
+            self.id,
+            activations.items.len,
+        });
         self.output.deinit();
         self.output = activations;
         self.update();

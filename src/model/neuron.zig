@@ -107,9 +107,9 @@ pub const Neuron = struct {
     pub fn activateDeep(self: *Neuron, input: std.ArrayList(usize)) !void {
         var sumOfOutputs: f32 = 0.0;
         var children = std.ArrayList(usize).init(self.allocator);
-        for (input.items, 0..) |element, elementIndex| {
-            const elementValue = value.valueMap.get(element).?;
-            const weightValue = value.valueMap.get(self.weights.items[elementIndex]).?;
+        for (self.weights.items, 0..) |weight, weightIndex| {
+            const elementValue = value.valueMap.get(input.items[weightIndex]).?;
+            const weightValue = value.valueMap.get(weight).?;
             const newElement = elementValue.multiply(weightValue);
             try children.append(newElement.id);
             sumOfOutputs += newElement.value;

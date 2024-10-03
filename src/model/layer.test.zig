@@ -54,8 +54,9 @@ test "pass value between layers" {
     try input.append(0.0);
     try input.append(1.1);
     newLayer.activateInputLayer(input);
+    const layer1 = layer.layerMap.get(newLayer.id).?;
     var newLayer2 = Layer.createLayer(2, allocator);
-    newLayer2.activateDeepLayer(newLayer.output);
+    newLayer2.activateDeepLayer(layer1.output);
     const output1 = value.valueMap.get(newLayer.output.items[0]).?;
     const output2 = value.valueMap.get(newLayer.output.items[1]).?;
     const output3 = value.valueMap.get(newLayer2.output.items[0]).?;

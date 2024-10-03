@@ -8,6 +8,7 @@ const expectEqual = std.testing.expectEqual;
 const value = @import("value.zig");
 const Value = value.Value;
 const Activation = @import("activation.zig").Activation;
+
 test "create Neuron" {
     const _neuron = Neuron.create(2, testAllocator);
     try expectEqual(2, _neuron.weights.items.len);
@@ -46,9 +47,9 @@ test "activate deep Neuron" {
     const neuronActivation = value.valueMap.get(_neuron.activation).?.value;
     var inputItem1 = value.valueMap.get(input.items[0]).?;
     var inputItem2 = value.valueMap.get(input.items[1]).?;
-    try expectEqual(w2Activation, (w2 * inputItem2.value));
     const manualActivation = ((w1 * inputItem1.value) + (w2 * inputItem2.value) + bias);
     const manualActivationTanh = (math.exp(2 * manualActivation) - 1) / (math.exp(2 * manualActivation) + 1);
+    try expectEqual(w2Activation, (w2 * inputItem2.value));
     try expectEqual(manualActivationTanh, neuronActivation);
     std.debug.print("i1, i2, w1, w2: {d}, {d}, {d}, {d}\n", .{
         inputItem1.value,
@@ -63,20 +64,36 @@ test "activate deep Neuron" {
     inputItem1 = value.valueMap.get(input.items[0]).?;
     inputItem2 = value.valueMap.get(input.items[1]).?;
 
-    std.debug.print("i1, i2: {d}, {d}\n", .{
-        inputItem1.gradient,
-        inputItem2.gradient,
-    });
+    try expectEqual(inputItem1.gradient == 0, false);
+    try expectEqual(inputItem2.gradient == 0, false);
 
-    std.debug.print("Activation children: {d}\n", .{
-        neuronActivationValue.children.items[0],
-    });
+    input.deinit();
+    neuron.cleanup();
+}
 
-    const value9children = value.valueMap.get(9).?.children;
-    const value7 = value.valueMap.get(value9children.items[0]).?.value;
-    const value6 = value.valueMap.get(value9children.items[1]).?.value;
+test "activate deep Neuron multiple times" {
+    var input = std.ArrayList(f32).init(testAllocator);
+    try input.append(0.0);
+    try input.append(1.1);
+    var _neuron = Neuron.create(2, testAllocator);
+    var _neuron2 = Neuron.create(2, testAllocator);
+    var _neuron3 = Neuron.create(2, testAllocator);
+    for (0..3) |_| {
+        try _neuron.activateInput(
+            input,
+        );
+        var _previousActivations = std.ArrayList(usize).init(testAllocator);
+        try _neuron2.activateInput(
+            input,
+        );
 
-    std.debug.print("Activation children values: {d}, {d}\n", .{ value6, value7 });
+        _previousActivations.append(_neuron.activation) catch {};
+        _previousActivations.append(_neuron2.activation) catch {};
+
+        try _neuron3.activateDeep(_previousActivations);
+
+        _previousActivations.deinit();
+    }
 
     input.deinit();
     neuron.cleanup();

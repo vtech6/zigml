@@ -26,12 +26,12 @@ pub const Network = struct {
     layers: ArrayList(usize),
     allocator: Allocator,
     batchSize: usize = 1,
-    steps: usize = 5,
-    epochs: i32 = 10,
+    steps: usize = 2,
+    epochs: usize = 5,
     lossFunction: Loss = Loss.MSE,
     lossId: usize,
     momentum: f32 = 1,
-    learningRate: f32 = 0.1,
+    learningRate: f32 = 0.01,
 
     pub fn deinit(self: *Network) void {
         self.trainData.deinit();
@@ -41,7 +41,7 @@ pub const Network = struct {
 
     pub fn create(
         inputShape: usize,
-        deepLayers: usize,
+        deepLayers: [2]usize,
         outputShape: usize,
         trainData: ArrayList(f32),
         testData: ArrayList(f32),
@@ -50,8 +50,8 @@ pub const Network = struct {
         var layers = ArrayList(usize).init(allocator);
         const inputLayer = Layer.createLayer(inputShape, allocator);
         layers.append(inputLayer.id) catch {};
-        for (0..deepLayers) |_layerShape| {
-            const newLayer = Layer.createLayer(_layerShape, allocator);
+        for (0..deepLayers.len) |_layerShape| {
+            const newLayer = Layer.createLayer(deepLayers[_layerShape], allocator);
             layers.append(newLayer.id) catch {};
         }
         const outputLayer = Layer.createLayer(outputShape, allocator);
@@ -71,13 +71,13 @@ pub const Network = struct {
         for (0..input.len) |inputIndex| {
             x.append(input[inputIndex]) catch {};
         }
-        for (self.layers.items, 0..) |layerValue, layerIndex| {
-            if (layerIndex == 0) {
-                var _layer = layer.layerMap.get(layerValue).?;
-                _layer.activateInputLayer(x);
+        for (self.layers.items) |_layer| {
+            if (_layer == 0) {
+                var currentLayer = layer.layerMap.get(_layer).?;
+                currentLayer.activateInputLayer(x);
             } else {
-                var currentLayer = layer.layerMap.get(layerValue).?;
-                const previousLayer = layer.layerMap.get(layerIndex - 1).?;
+                var currentLayer = layer.layerMap.get(_layer).?;
+                const previousLayer = layer.layerMap.get(_layer - 1).?;
                 currentLayer.activateDeepLayer(previousLayer.output);
             }
         }
@@ -90,7 +90,9 @@ pub const Network = struct {
     pub fn forwardPass(
         self: *Network,
     ) void {
-        self.iterateBatches();
+        for (0..self.epochs) |_| {
+            self.iterateBatches();
+        }
         const loss = value.valueMap.get(self.lossId).?;
         std.debug.print("PRINTING LOSS {d}\n", .{loss.value});
     }
@@ -124,10 +126,8 @@ pub const Network = struct {
         const valueMapKeys = valueMap.keys();
         for (valueMapKeys) |valueKey| {
             var _value = valueMap.get(valueKey).?;
-            if (_value.gradient != 0.0) {
-                _value.value += (_value.gradient * (-self.learningRate) * self.momentum);
-                _value.update();
-            }
+            _value.value += (_value.gradient * (-self.learningRate) * self.momentum);
+            _value.update();
         }
     }
 
@@ -139,7 +139,9 @@ pub const Network = struct {
         const negativeOutput = lastLayerOutput.multiply(value.Value.create(-1.0, self.allocator));
         const yDifference = negativeOutput.add(targetValue);
         loss.value += yDifference.value;
+        loss.children.clearAndFree();
         loss.children.append(yDifference.id) catch {};
+        loss.op = value.OPS.add;
         loss.update();
         std.debug.print("loss: {d}, value: {d}, traget: {d} \n", .{ loss.value, lastLayerOutput.value, yValue });
     }
