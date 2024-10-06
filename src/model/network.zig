@@ -13,26 +13,25 @@ pub const Loss = enum {
 };
 
 pub const xs = [4][3]f32{
-    .{ 3.0, 3.0, -1.0 },
-    .{ -3.0, -1.0, 0.5 },
-    .{ -0.5, -1.0, 1.0 },
+    .{ 2.0, 3.0, -1.0 },
+    .{ 3.0, -1.0, 0.5 },
+    .{ 0.5, 1.0, 1.0 },
     .{ 1.0, 1.0, -1.0 },
 };
 
 pub const ys = [4]f32{ 1.0, -1.0, -1.0, 1.0 };
-
 pub const Network = struct {
     trainData: ArrayList(f32),
     testData: ArrayList(f32),
     layers: ArrayList(usize),
     allocator: Allocator,
     batchSize: usize = 4,
-    steps: usize = 1,
-    epochs: usize = 50,
+    steps: usize = 10,
+    epochs: usize = 10,
     lossFunction: Loss = Loss.MSE,
     lossId: usize,
     momentum: f32 = 1,
-    learningRate: f32 = 0.01,
+    learningRate: f32 = 0.001,
 
     pub fn deinit(self: *Network) void {
         self.trainData.deinit();
@@ -112,7 +111,8 @@ pub const Network = struct {
         const nBatches = @divFloor(xs.len, self.batchSize);
 
         for (0..nBatches) |batchIndex| {
-            for (0..self.steps) |_| {
+            for (0..self.steps) |step| {
+                std.debug.print("Step {d} ---------\n", .{step});
                 self.resetLoss();
                 for (0..self.batchSize) |batchItemIndex| {
                     const itemIndex = batchIndex * self.batchSize + batchItemIndex;
