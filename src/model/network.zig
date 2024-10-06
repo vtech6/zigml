@@ -13,9 +13,9 @@ pub const Loss = enum {
 };
 
 pub const xs = [4][3]f32{
-    .{ 2.0, 3.0, -1.0 },
-    .{ 3.0, -1.0, 0.5 },
-    .{ 0.5, 1.0, 1.0 },
+    .{ 3.0, 3.0, -1.0 },
+    .{ -3.0, -1.0, 0.5 },
+    .{ -0.5, -1.0, 1.0 },
     .{ 1.0, 1.0, -1.0 },
 };
 
@@ -28,11 +28,11 @@ pub const Network = struct {
     allocator: Allocator,
     batchSize: usize = 4,
     steps: usize = 1,
-    epochs: usize = 100,
+    epochs: usize = 50,
     lossFunction: Loss = Loss.MSE,
     lossId: usize,
     momentum: f32 = 1,
-    learningRate: f32 = 0.001,
+    learningRate: f32 = 0.01,
 
     pub fn deinit(self: *Network) void {
         self.trainData.deinit();
@@ -74,6 +74,7 @@ pub const Network = struct {
 
     pub fn resetLoss(self: *Network) void {
         var loss = value.valueMap.get(self.lossId).?;
+        loss.children.clearAndFree();
         loss.value = 0.0;
         loss.update();
     }
@@ -110,27 +111,26 @@ pub const Network = struct {
     pub fn iterateBatches(self: *Network) void {
         const nBatches = @divFloor(xs.len, self.batchSize);
 
-        self.resetLoss();
         for (0..nBatches) |batchIndex| {
             for (0..self.steps) |_| {
                 self.resetLoss();
-                resetGradients();
                 for (0..self.batchSize) |batchItemIndex| {
                     const itemIndex = batchIndex * self.batchSize + batchItemIndex;
                     self.calculateOutput(xs[itemIndex], ys[itemIndex]);
-                    self.backpropagate();
-                    self.adjustValues();
                 }
+                self.resetGradients();
+                self.backpropagate();
+                self.adjustValues();
             }
         }
     }
 
     pub fn iterateEpochs(self: *Network) void {
         for (0..self.epochs) |epoch| {
-            std.debug.print("epoch: {d}\n", .{epoch + 1});
-            self.iterateBatches();
             const loss = value.valueMap.get(self.lossId).?;
-            std.debug.print("epoch loss: {d}\n", .{loss.value});
+            std.debug.print("epoch: {d}, loss: {d}\n", .{ epoch + 1, loss.value });
+
+            self.iterateBatches();
         }
     }
 
@@ -145,20 +145,19 @@ pub const Network = struct {
         const lastLayer = layer.layerMap.get(self.layers.items[self.layers.items.len - 1]).?;
         const targetValue = value.Value.create(yValue, self.allocator);
         const lastLayerOutput = value.valueMap.get(lastLayer.output.items[0]).?;
-        const negativeOutput = lastLayerOutput.multiply(value.Value.create(-1.0, self.allocator));
-        const yDifference = negativeOutput.add(targetValue);
+        const negativeTarget = targetValue.multiply(value.Value.create(-1.0, self.allocator));
+        const yDifference = lastLayerOutput.add(negativeTarget);
         const yDifferenceSquared = yDifference.pow(2);
-        loss.children.clearAndFree();
         loss.children.append(yDifferenceSquared.id) catch {};
         loss.value += yDifferenceSquared.value;
-        loss.gradient = 1.0;
         loss.op = value.OPS.add;
         loss.update();
-        std.debug.print("v: {d}, t: {d} \n", .{ lastLayerOutput.value, yValue });
+        std.debug.print("v: {d}, t: {d}, l: {d} \n", .{ lastLayerOutput.value, yValue, loss.value });
     }
 
     pub fn backpropagate(self: *Network) void {
         var loss = value.valueMap.get(self.lossId).?;
+        loss.gradient = 1.0;
         loss.backpropagate();
     }
 
@@ -166,18 +165,22 @@ pub const Network = struct {
         const valueMap = value.valueMap;
         const valueMapKeys = valueMap.keys();
         for (valueMapKeys) |valueKey| {
-            var _value = valueMap.get(valueKey).?;
-            _value.value += (_value.gradient * (-self.learningRate) * self.momentum);
-            _value.update();
+            if (valueKey != self.lossId) {
+                var _value = valueMap.get(valueKey).?;
+                _value.value += (_value.gradient * (-self.learningRate) * self.momentum);
+                _value.update();
+            }
         }
     }
 
-    pub fn resetGradients() void {
+    pub fn resetGradients(self: *Network) void {
         const valueMap = value.valueMap;
         const valueMapKeys = valueMap.keys();
         for (valueMapKeys) |valueKey| {
             var _value = valueMap.get(valueKey).?;
-            _value.resetGradient();
+            if (_value.id != self.lossId) {
+                _value.resetGradient();
+            }
         }
     }
 
