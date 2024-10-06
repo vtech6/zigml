@@ -1,11 +1,11 @@
 const std = @import("std");
+const generateRandomFloat = @import("utils.zig").generateRandomFloat;
 const ArrayList = std.ArrayList;
 const value = @import("value.zig");
 const Value = value.Value;
 const Allocator = std.mem.Allocator;
 const Activation = @import("activation.zig").Activation;
 pub var neuronMap = std.AutoArrayHashMap(usize, Neuron).init(std.heap.page_allocator);
-var randomGenerator = std.rand.DefaultPrng.init(42);
 pub var idTracker: usize = 0;
 
 pub fn resetState() void {
@@ -41,14 +41,12 @@ pub const Neuron = struct {
         var weights = std.ArrayList(usize).init(allocator);
         const output = std.ArrayList(usize).init(allocator);
 
-        const rng = randomGenerator.random();
-
         for (0..inputShape) |_| {
-            const randomFloat = rng.float(f32);
+            const randomFloat = generateRandomFloat();
             const newValue = Value.create(randomFloat, allocator);
             weights.append(newValue.id) catch {};
         }
-        const randomizedBias = rng.float(f32);
+        const randomizedBias = generateRandomFloat();
         const biasValue = Value.create(randomizedBias, allocator);
         const activationValue = Value.create(0, allocator);
         const newNeuron = Neuron{
@@ -135,12 +133,14 @@ pub const Neuron = struct {
     }
     pub fn print(self: Neuron) void {
         const bias = value.valueMap.get(self.bias).?;
-        std.debug.print("NeuronId: {d}, firstWeightId: {d}, biasId: {d}, biasValue: {d}, biasGrad: {d}\n", .{
+        const activation = value.valueMap.get(self.activation).?;
+        std.debug.print("NeuronId: {d}, fwid: {d}, bId: {d}, bv: {d}, bg: {d}, a: {d}\n", .{
             self.id,
             self.weights.items[0],
             bias.id,
             bias.value,
             bias.gradient,
+            activation.value,
         });
     }
 };

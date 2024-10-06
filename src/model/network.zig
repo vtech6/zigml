@@ -25,13 +25,13 @@ pub const Network = struct {
     testData: ArrayList(f32),
     layers: ArrayList(usize),
     allocator: Allocator,
-    batchSize: usize = 2,
-    steps: usize = 2,
+    batchSize: usize = 4,
+    steps: usize = 5,
     epochs: usize = 5,
     lossFunction: Loss = Loss.MSE,
     lossId: usize,
     momentum: f32 = 1,
-    learningRate: f32 = 0.01,
+    learningRate: f32 = 0.0001,
 
     pub fn deinit(self: *Network) void {
         self.trainData.deinit();
@@ -71,6 +71,12 @@ pub const Network = struct {
         };
     }
 
+    pub fn resetLoss(self: *Network) void {
+        var loss = value.valueMap.get(self.lossId).?;
+        loss.value = 0.0;
+        loss.update();
+    }
+
     pub fn iterateStep(self: *Network, input: [3]f32, y: f32) void {
         var x = ArrayList(f32).init(self.allocator);
         for (0..input.len) |inputIndex| {
@@ -107,6 +113,7 @@ pub const Network = struct {
         var loop: usize = 0;
         const nBatches = @divFloor(xs.len, self.batchSize);
         for (0..nBatches) |batchIndex| {
+            self.resetLoss();
             for (0..self.batchSize) |batchItemIndex| {
                 const itemIndex = batchIndex * self.batchSize + batchItemIndex;
                 for (0..self.steps) |step| {
@@ -152,7 +159,6 @@ pub const Network = struct {
         var loss = value.valueMap.get(self.lossId).?;
         const lastLayer = layer.layerMap.get(self.layers.items[self.layers.items.len - 1]).?;
         const targetValue = value.Value.create(yValue, self.allocator);
-        std.debug.print("last layer output length {d}\n", .{lastLayer.output.items.len});
         const lastLayerOutput = value.valueMap.get(lastLayer.output.items[0]).?;
         const negativeOutput = lastLayerOutput.multiply(value.Value.create(-1.0, self.allocator));
         const yDifference = negativeOutput.add(targetValue);

@@ -8,7 +8,6 @@ const Allocator = std.mem.Allocator;
 pub var layerMap = std.AutoArrayHashMap(usize, Layer).init(
     std.heap.page_allocator,
 );
-var randomGenerator = std.rand.DefaultPrng.init(42);
 pub var idTracker: usize = 0;
 
 pub fn resetState() void {

@@ -1,4 +1,8 @@
 const rl = @import("raylib");
+const std = @import("std");
+
+var randomGenerator = std.rand.DefaultPrng.init(42);
+const random = randomGenerator.random();
 pub fn randomizeColor(depth: i32) rl.Color {
     const castDepth: u32 = @intCast(depth);
 
@@ -17,4 +21,8 @@ pub fn randomizeColor(depth: i32) rl.Color {
         .a = 255,
     };
     return color;
+}
+
+pub fn generateRandomFloat() f32 {
+    return random.float(f32) * 2.0 - 1.0;
 }
