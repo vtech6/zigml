@@ -8,7 +8,14 @@ const math = std.math;
 
 pub var valueMap = std.AutoArrayHashMap(usize, Value).init(std.heap.page_allocator);
 pub var backpropagationOrder = std.ArrayList(usize).init(std.heap.page_allocator);
-pub const OPS = enum { add, init, multiply, activate, tanh };
+pub const OPS = enum {
+    add,
+    init,
+    multiply,
+    activate,
+    tanh,
+    pow,
+};
 
 pub var idTracker: usize = 0;
 
@@ -69,6 +76,7 @@ pub const Value = struct {
             OPS.init => {},
             OPS.activate => {},
             OPS.tanh => self.backwardTanh(),
+            OPS.pow => self.backwardPow(),
         }
     }
 
@@ -104,7 +112,7 @@ pub const Value = struct {
         var resultValue = Value.create(result, self.allocator);
         resultValue.op = OPS.tanh;
         resultValue.children.append(self.id) catch {};
-        valueMap.put(resultValue.id, resultValue) catch {};
+        resultValue.update();
         return resultValue;
     }
 
@@ -114,15 +122,11 @@ pub const Value = struct {
         newValue.update();
     }
 
-    pub fn updateSingleValue(self: Value) !void {
-        valueMap.put(self.id, self) catch {};
-    }
-
     fn backwardAdd(self: Value) void {
         for (self.children.items) |child| {
             var childValue = valueMap.get(child).?;
-            childValue.gradient += self.gradient;
-            valueMap.put(childValue.id, childValue) catch {};
+            childValue.gradient += 1.0 * self.gradient;
+            childValue.update();
         }
     }
 
@@ -134,14 +138,30 @@ pub const Value = struct {
         child1.gradient += child2.value * self.gradient;
         child2.gradient += child1.value * self.gradient;
 
-        valueMap.put(child1.id, child1) catch {};
-        valueMap.put(child2.id, child2) catch {};
+        child1.update();
+        child2.update();
+    }
+    pub fn pow(self: Value, power: f32) Value {
+        const _power = Value.create(power, self.allocator);
+        var output = Value.create(math.pow(f32, self.value, power), self.allocator);
+        output.children.append(self.id) catch {};
+        output.children.append(_power.id) catch {};
+        output.op = OPS.pow;
+        output.update();
+        return output;
     }
 
     //Utility methods
+    fn backwardPow(self: Value) void {
+        var childValue = valueMap.get(self.children.items[0]).?;
+        const powerValue = valueMap.get(self.children.items[1]).?;
+        childValue.gradient += powerValue.value * (math.pow(f32, childValue.value, powerValue.value - 1)) * self.gradient;
+        childValue.update();
+    }
 
     pub fn resetGradient(self: *Value) void {
-        self.gradient = 1.0;
+        self.gradient = 0.0;
+        self.update();
     }
 
     pub fn printValue(self: Value) void {

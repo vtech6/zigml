@@ -9,7 +9,7 @@ const allocator = std.testing.allocator;
 const expectEqual = std.testing.expectEqual;
 
 test "create input layer" {
-    const inputLayer = Layer.createLayer(3, allocator);
+    const inputLayer = Layer.createLayer(3, 3, allocator);
     try expectEqual(3, inputLayer.neurons.items.len);
     try expectEqual(3, inputLayer.output.items.len);
     layer.cleanup();
@@ -17,7 +17,7 @@ test "create input layer" {
 
 test "activate input layer" {
     layer.resetState();
-    var newLayer = Layer.createLayer(2, allocator);
+    var newLayer = Layer.createLayer(2, 2, allocator);
     var input = std.ArrayList(f32).init(allocator);
     try input.append(0.0);
     try input.append(1.1);
@@ -33,7 +33,7 @@ test "activate input layer" {
 
 test "activate deep layer" {
     layer.resetState();
-    var newLayer = Layer.createLayer(2, allocator);
+    var newLayer = Layer.createLayer(2, 2, allocator);
     var input = std.ArrayList(usize).init(allocator);
     try input.append(Value.create(0.5, allocator).id);
     try input.append(Value.create(-1, allocator).id);
@@ -49,13 +49,13 @@ test "activate deep layer" {
 
 test "pass value between layers" {
     layer.resetState();
-    var newLayer = Layer.createLayer(2, allocator);
+    var newLayer = Layer.createLayer(2, 2, allocator);
     var input = std.ArrayList(f32).init(allocator);
     try input.append(0.0);
     try input.append(1.1);
     newLayer.activateInputLayer(input);
     const layer1 = layer.layerMap.get(newLayer.id).?;
-    var newLayer2 = Layer.createLayer(2, allocator);
+    var newLayer2 = Layer.createLayer(2, 2, allocator);
     newLayer2.activateDeepLayer(layer1.output);
     const output1 = value.valueMap.get(newLayer.output.items[0]).?;
     const output2 = value.valueMap.get(newLayer.output.items[1]).?;

@@ -39,12 +39,13 @@ pub const Layer = struct {
 
     pub fn createLayer(
         layerSize: usize,
+        inputSize: usize,
         allocator: Allocator,
     ) Layer {
         var neurons = std.ArrayList(usize).init(allocator);
         var output = std.ArrayList(usize).init(allocator);
         for (0..layerSize) |_| {
-            const newNeuron = Neuron.create(layerSize, allocator);
+            const newNeuron = Neuron.create(inputSize, allocator);
             output.append(newNeuron.activation) catch {};
             neurons.append(newNeuron.id) catch {};
         }
@@ -84,20 +85,16 @@ pub const Layer = struct {
             _neuron.activateDeep(input) catch {};
             activations.append(_neuron.activation) catch {};
         }
-        if (self.id == 1) {
-            std.debug.print("Activation values: {d}, {d}, {d}\n", .{
-                activations.items[0],
-                activations.items[1],
-                activations.items[2],
-            });
-        }
-
-        std.debug.print("activations length for layer {d}: {d}\n", .{
-            self.id,
-            activations.items.len,
-        });
         self.output.deinit();
         self.output = activations;
         self.update();
+    }
+
+    pub fn printNeurons(self: Layer) void {
+        for (self.neurons.items) |_neuron| {
+            const neuronValue = neuron.neuronMap.get(_neuron).?;
+            std.debug.print("Layer {d}, output length: {d}, ", .{ self.id, self.output.items.len });
+            neuronValue.print();
+        }
     }
 };

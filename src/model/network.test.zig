@@ -33,7 +33,7 @@ test "Network create method" {
 
 test "Network forward pass" {
     const trainData = std.ArrayList(f32).init(testing.allocator);
-    const deepLayers = [2]usize{ 3, 3 };
+    const deepLayers = [2]usize{ 12, 9 };
     var newNetwork = Network.create(
         3,
         deepLayers,

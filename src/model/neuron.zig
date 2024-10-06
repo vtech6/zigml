@@ -133,4 +133,14 @@ pub const Neuron = struct {
         self.activation = newActivation.id;
         self.update();
     }
+    pub fn print(self: Neuron) void {
+        const bias = value.valueMap.get(self.bias).?;
+        std.debug.print("NeuronId: {d}, firstWeightId: {d}, biasId: {d}, biasValue: {d}, biasGrad: {d}\n", .{
+            self.id,
+            self.weights.items[0],
+            bias.id,
+            bias.value,
+            bias.gradient,
+        });
+    }
 };
