@@ -6,6 +6,7 @@ const layer = @import("layer.zig");
 const Layer = layer.Layer;
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
+pub const deepLayersLength: usize = 2;
 
 pub const Loss = enum {
     MSE,
@@ -26,12 +27,12 @@ pub const Network = struct {
     layers: ArrayList(usize),
     allocator: Allocator,
     batchSize: usize = 4,
-    steps: usize = 5,
-    epochs: usize = 5,
+    steps: usize = 1,
+    epochs: usize = 100,
     lossFunction: Loss = Loss.MSE,
     lossId: usize,
     momentum: f32 = 1,
-    learningRate: f32 = 0.0001,
+    learningRate: f32 = 0.001,
 
     pub fn deinit(self: *Network) void {
         self.trainData.deinit();
@@ -41,7 +42,7 @@ pub const Network = struct {
 
     pub fn create(
         inputShape: usize,
-        deepLayers: [2]usize,
+        deepLayers: [deepLayersLength]usize,
         outputShape: usize,
         trainData: ArrayList(f32),
         testData: ArrayList(f32),
@@ -77,7 +78,7 @@ pub const Network = struct {
         loss.update();
     }
 
-    pub fn iterateStep(self: *Network, input: [3]f32, y: f32) void {
+    pub fn calculateOutput(self: *Network, input: [3]f32, y: f32) void {
         var x = ArrayList(f32).init(self.allocator);
         for (0..input.len) |inputIndex| {
             x.append(input[inputIndex]) catch {};
@@ -98,37 +99,62 @@ pub const Network = struct {
         }
     }
 
-    pub fn forwardPass(
-        self: *Network,
-    ) void {
-        for (0..self.epochs) |epoch| {
-            std.debug.print("epoch: {d}\n", .{epoch + 1});
-            self.iterateBatches();
+    pub fn iterateBatchItems() void {}
+
+    pub fn iterateSteps(self: *Network) void {
+        for (0..self.steps) |_| {
+            iterateBatchItems();
         }
-        const loss = value.valueMap.get(self.lossId).?;
-        std.debug.print("PRINTING LOSS {d}\n", .{loss.value});
     }
 
     pub fn iterateBatches(self: *Network) void {
-        var loop: usize = 0;
         const nBatches = @divFloor(xs.len, self.batchSize);
+
+        self.resetLoss();
         for (0..nBatches) |batchIndex| {
-            self.resetLoss();
-            for (0..self.batchSize) |batchItemIndex| {
-                const itemIndex = batchIndex * self.batchSize + batchItemIndex;
-                for (0..self.steps) |step| {
-                    loop += 1;
-                    std.debug.print("step {d}, batch {d}, ", .{
-                        step + 1,
-                        batchIndex + 1,
-                    });
-                    resetGradients();
-                    self.iterateStep(xs[itemIndex], ys[itemIndex]);
+            for (0..self.steps) |_| {
+                self.resetLoss();
+                resetGradients();
+                for (0..self.batchSize) |batchItemIndex| {
+                    const itemIndex = batchIndex * self.batchSize + batchItemIndex;
+                    self.calculateOutput(xs[itemIndex], ys[itemIndex]);
                     self.backpropagate();
                     self.adjustValues();
                 }
             }
         }
+    }
+
+    pub fn iterateEpochs(self: *Network) void {
+        for (0..self.epochs) |epoch| {
+            std.debug.print("epoch: {d}\n", .{epoch + 1});
+            self.iterateBatches();
+            const loss = value.valueMap.get(self.lossId).?;
+            std.debug.print("epoch loss: {d}\n", .{loss.value});
+        }
+    }
+
+    pub fn forwardPass(
+        self: *Network,
+    ) void {
+        self.iterateEpochs();
+    }
+
+    pub fn meanSquaredError(self: *Network, yValue: f32) void {
+        var loss = value.valueMap.get(self.lossId).?;
+        const lastLayer = layer.layerMap.get(self.layers.items[self.layers.items.len - 1]).?;
+        const targetValue = value.Value.create(yValue, self.allocator);
+        const lastLayerOutput = value.valueMap.get(lastLayer.output.items[0]).?;
+        const negativeOutput = lastLayerOutput.multiply(value.Value.create(-1.0, self.allocator));
+        const yDifference = negativeOutput.add(targetValue);
+        const yDifferenceSquared = yDifference.pow(2);
+        loss.children.clearAndFree();
+        loss.children.append(yDifferenceSquared.id) catch {};
+        loss.value += yDifferenceSquared.value;
+        loss.gradient = 1.0;
+        loss.op = value.OPS.add;
+        loss.update();
+        std.debug.print("v: {d}, t: {d} \n", .{ lastLayerOutput.value, yValue });
     }
 
     pub fn backpropagate(self: *Network) void {
@@ -153,23 +179,6 @@ pub const Network = struct {
             var _value = valueMap.get(valueKey).?;
             _value.resetGradient();
         }
-    }
-
-    pub fn meanSquaredError(self: *Network, yValue: f32) void {
-        var loss = value.valueMap.get(self.lossId).?;
-        const lastLayer = layer.layerMap.get(self.layers.items[self.layers.items.len - 1]).?;
-        const targetValue = value.Value.create(yValue, self.allocator);
-        const lastLayerOutput = value.valueMap.get(lastLayer.output.items[0]).?;
-        const negativeOutput = lastLayerOutput.multiply(value.Value.create(-1.0, self.allocator));
-        const yDifference = negativeOutput.add(targetValue);
-        const yDifferenceSquared = yDifference.pow(2);
-        loss.children.clearAndFree();
-        loss.children.append(yDifferenceSquared.id) catch {};
-        loss.value += yDifferenceSquared.value;
-        loss.gradient = 1.0;
-        loss.op = value.OPS.add;
-        loss.update();
-        std.debug.print("loss: {d}, value: {d}, target: {d} \n", .{ loss.value, lastLayerOutput.value, yValue });
     }
 
     pub fn printNeurons(self: Network) void {

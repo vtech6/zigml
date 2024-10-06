@@ -16,7 +16,7 @@ pub const ys = [4]f32{ 1.0, -1.0, -1.0, 1.0 };
 
 test "Network create method" {
     const trainData = std.ArrayList(f32).init(testing.allocator);
-    const deepLayers = [2]usize{ 3, 4 };
+    const deepLayers = [network.deepLayersLength]usize{ 3, 4 };
     var newNetwork = Network.create(
         3,
         deepLayers,
@@ -33,7 +33,7 @@ test "Network create method" {
 
 test "Network forward pass" {
     const trainData = std.ArrayList(f32).init(testing.allocator);
-    const deepLayers = [2]usize{ 3, 3 };
+    const deepLayers = [network.deepLayersLength]usize{ 4, 4 };
     var newNetwork = Network.create(
         3,
         deepLayers,
@@ -42,8 +42,8 @@ test "Network forward pass" {
         trainData,
         testing.allocator,
     );
-    newNetwork.forwardPass();
     try expectEqual(newNetwork.layers.items.len, 4);
+    newNetwork.forwardPass();
     trainData.deinit();
     layer.cleanup();
     newNetwork.deinit();
