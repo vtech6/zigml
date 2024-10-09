@@ -9,10 +9,13 @@ const layer = @import("./model/layer.zig");
 pub const testAllocator = std.heap.page_allocator;
 pub fn main() !void {
     const trainData = std.ArrayList(f32).init(testAllocator);
-    const deepLayers = [network.deepLayersLength]usize{ 3, 3, 3 };
+    const deepLayers = [network.deepLayersLength]usize{
+        3,
+        3,
+    };
     var newNetwork = Network.create(3, deepLayers, 1, trainData, trainData, testAllocator);
     newNetwork.forwardPass();
-    value.valueMap.get(537).?.visualize();
+    value.valueMap.get(newNetwork.lossId).?.visualize();
     trainData.deinit();
     layer.cleanup();
     newNetwork.deinit();
